@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <math.h>
 #include <limits.h>
 #include <float.h>
@@ -76,7 +77,7 @@ void assist_additional_forces(struct reb_simulation* sim){
 	// The offset position is used to adjust the particle positions.
 	int flag = assist_all_ephem(ephem, assist->ephem_cache, ASSIST_BODY_EARTH, t, &GM, &xo, &yo, &zo, &vxo, &vyo, &vzo, &axo, &ayo, &azo);
 	if(flag != ASSIST_SUCCESS){
-        reb_simulation_error(sim, assist_error_messages[flag]);
+        reb_error(sim, assist_error_messages[flag]);
 	}
     }else{
 	// barycentric
@@ -266,6 +267,8 @@ static void assist_additional_force_direct(struct reb_simulation* sim, double xo
     const unsigned int N = sim->N;  // N includes real+variational particles
     const unsigned int N_real = N - sim->N_var;
 
+	//printf("KK assist_additional_force_direct \n");
+
     struct assist_extras* assist = (struct assist_extras*) sim->extras;
     struct assist_ephem* ephem = assist->ephem;
     const double jd_ref = ephem->jd_ref;
@@ -295,6 +298,8 @@ static void assist_additional_force_direct(struct reb_simulation* sim, double xo
         spl_num += ephem->spl->num;
     }
 
+	//KK TEST HERE 
+
     // Direct forces from massives bodies
     for (int k=0; k < ASSIST_BODY_NPLANETS + spl_num; k++){
         int i; // ordered index
@@ -314,20 +319,23 @@ static void assist_additional_force_direct(struct reb_simulation* sim, double xo
         int flag = assist_all_ephem(ephem, assist->ephem_cache, i, t, &GM, &x, &y, &z, &vx, &vy, &vz, &ax, &ay, &az);
 
         if(flag != ASSIST_SUCCESS){
-            reb_simulation_error(sim, assist_error_messages[flag]);
+            reb_error(sim, assist_error_messages[flag]);
         }
 
         // Loop over test particles
         for (int j=0; j<N_real; j++){
 
             // Compute position vector of test particle j relative to massive body i.
+			const double kk_test_distance = 0.00004928;
             const double dx = particles[j].x + (xo - x); 
             const double dy = particles[j].y + (yo - y);
             const double dz = particles[j].z + (zo - z);
             const double r2 = dx*dx + dy*dy + dz*dz;
             const double _r  = sqrt(r2);
             const double prefac = GM/(_r*_r*_r);
-
+			if (i==ASSIST_BODY_EARTH && _r < kk_test_distance){
+				printf("IMPACT: %25.16le R is %f \n", jd_ref+t, _r);
+			}
             if(outfile){
                 fprintf(outfile, "%3d %25.16le %25.16le %25.16le %25.16le %25.16le %25.16le %25.16le %25.16le\n", i, jd_ref+t, GM, dx, dy, dz, -prefac*dx, -prefac*dy, -prefac*dz);
 		fflush(outfile);		
@@ -358,11 +366,11 @@ static void assist_additional_force_direct(struct reb_simulation* sim, double xo
 	int flag = assist_all_ephem(ephem, assist->ephem_cache, i, t, &GM, &x, &y, &z, &vx, &vy, &vz, &ax, &ay, &az);
 
 	if(flag != ASSIST_SUCCESS){
-        reb_simulation_error(sim, assist_error_messages[flag]);
+        reb_error(sim, assist_error_messages[flag]);
 	}
 
     // Skip remainder of calculation if variational particles are not used
-    if (sim->N_var_config == 0) return;
+    if (sim->var_config_N == 0) return;
 
 	// Loop over test particles
     for (int j=0; j<N_real; j++){
@@ -397,7 +405,7 @@ static void assist_additional_force_direct(struct reb_simulation* sim, double xo
 	    // particles that are associated with current
 	    // real particle.  
 
-	    for (int v=0; v < sim->N_var_config; v++){
+	    for (int v=0; v < sim->var_config_N; v++){
 		struct reb_variational_configuration const vc = sim->var_config[v];
 		int tp = vc.testparticle;
 		struct reb_particle* const particles_var1 = particles + vc.index;		
@@ -586,7 +594,7 @@ static void assist_additional_force_earth_J2J4(struct reb_simulation* sim, doubl
 	const double dydzJ4 = GMearth*J4e_prefac*(-21.)*J4e_fac3*dy*dz/r2;
 	const double dxdzJ4 = GMearth*J4e_prefac*(-21.)*J4e_fac3*dx*dz/r2;
 
-	for (int v=0; v < sim->N_var_config; v++){
+	for (int v=0; v < sim->var_config_N; v++){
 	    struct reb_variational_configuration const vc = sim->var_config[v];
 	    int tp = vc.testparticle;
 	    struct reb_particle* const particles_var1 = particles + vc.index;		
@@ -726,7 +734,7 @@ static void assist_additional_force_solar_J2(struct reb_simulation* sim, double 
 	const double dydz = GMsun*J2s_prefac*(-5.)*(J2s_fac2-2.)*dy*dz/r2;
 	const double dxdz = GMsun*J2s_prefac*(-5.)*(J2s_fac2-2.)*dx*dz/r2;
 
-	for (int v=0; v < sim->N_var_config; v++){
+	for (int v=0; v < sim->var_config_N; v++){
 	    struct reb_variational_configuration const vc = sim->var_config[v];
 	    int tp = vc.testparticle;
 	    struct reb_particle* const particles_var1 = particles + vc.index;		
@@ -1013,7 +1021,7 @@ static void assist_additional_force_non_gravitational(struct reb_simulation* sim
 	    + A2*g*(-dy*dz/_t - tyt3*r2*tz)
 	    + A3*g*(dx/h - hzh3*(r2*dvy - dy*rdotv));
 
-	for (int v=0; v < sim->N_var_config; v++){
+	for (int v=0; v < sim->var_config_N; v++){
 	    struct reb_variational_configuration const vc = sim->var_config[v];
 	    int tp = vc.testparticle;
 	    struct reb_particle* const particles_var1 = particles + vc.index;		
@@ -1139,7 +1147,7 @@ static void assist_additional_force_potential_GR(struct reb_simulation* sim,
 	const double dzdz = prefac + -4.0*prefac*(p.z/r)*(p.z/r);
 
 
-	for (int v=0; v < sim->N_var_config; v++){
+	for (int v=0; v < sim->var_config_N; v++){
 	    struct reb_variational_configuration const vc = sim->var_config[v];
 	    int tp = vc.testparticle;
 	    struct reb_particle* const particles_var1 = particles + vc.index;		
@@ -1262,7 +1270,7 @@ static void assist_additional_force_simple_GR(struct reb_simulation* sim,
 	const double dzdvy =                                prefac*(  - 2.0*p.vy*p.z                + 4.0*p.y*p.vz    );
 	const double dzdvz =                                prefac*(  - 2.0*p.vz*p.z                + 4.0*p.z*p.vz + B);
 
-	for (int v=0; v < sim->N_var_config; v++){
+	for (int v=0; v < sim->var_config_N; v++){
 	    struct reb_variational_configuration const vc = sim->var_config[v];
 	    int tp = vc.testparticle;
 	    struct reb_particle* const particles_var1 = particles + vc.index;		
@@ -1511,7 +1519,7 @@ static void assist_additional_force_eih_GR(struct reb_simulation* sim,
 
     }
 
-    if(sim->N_var_config==0)
+    if(sim->var_config_N==0)
 	return;
     
     // Now do the variational particles
@@ -1961,7 +1969,7 @@ static void assist_additional_force_eih_GR(struct reb_simulation* sim,
 	//particles[i].az += term7z_sum/C2 + term8z_sum/C2;
 
 	// Variational equation terms go here.
-	for (int v=0; v < sim->N_var_config; v++){
+	for (int v=0; v < sim->var_config_N; v++){
 	    struct reb_variational_configuration const vc = sim->var_config[v];
 	    int tp = vc.testparticle;
 	    struct reb_particle* const particles_var1 = particles + vc.index;		
@@ -2475,7 +2483,7 @@ static void assist_additional_force_eih_GR_orig(struct reb_simulation* sim,
 	particles[i].az += term7z_sum*over_C2 + term8z_sum*over_C2;
 
 	// Variational equation terms go here.
-	for (int v=0; v < sim->N_var_config; v++){
+	for (int v=0; v < sim->var_config_N; v++){
 	    struct reb_variational_configuration const vc = sim->var_config[v];
 	    int tp = vc.testparticle;
 	    struct reb_particle* const particles_var1 = particles + vc.index;		

@@ -119,6 +119,7 @@ struct assist_extras {
     struct assist_ephem_cache* ephem_cache;
     int extras_should_free_ephem;   // Internal use only. Set to 1 if extras allocated memory for ephem.
     int geocentric;
+    struct reb_particle* impact_state;
     struct reb_particle* last_state;
     struct reb_particle* current_state;
     //particle_params* particle_params;
