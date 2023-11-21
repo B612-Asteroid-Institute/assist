@@ -267,11 +267,9 @@ static void assist_additional_force_direct(struct reb_simulation* sim, double xo
     const unsigned int N = sim->N;  // N includes real+variational particles
     const unsigned int N_real = N - sim->N_var;
 
-	//printf("KK assist_additional_force_direct \n");
-
     struct assist_extras* assist = (struct assist_extras*) sim->extras;
     struct assist_ephem* ephem = assist->ephem;
-    const double jd_ref = ephem->jd_ref;
+	const double jd_ref = ephem->jd_ref;
     
     const double t = sim->t;    
 
@@ -297,8 +295,6 @@ static void assist_additional_force_direct(struct reb_simulation* sim, double xo
     if (ephem->spl){
         spl_num += ephem->spl->num;
     }
-
-	//KK TEST HERE 
 
     // Direct forces from massives bodies
     for (int k=0; k < ASSIST_BODY_NPLANETS + spl_num; k++){
@@ -326,16 +322,19 @@ static void assist_additional_force_direct(struct reb_simulation* sim, double xo
         for (int j=0; j<N_real; j++){
 
             // Compute position vector of test particle j relative to massive body i.
-			const double kk_test_distance = 0.00004928;
+			const double impact_distance = 0.00004928;
             const double dx = particles[j].x + (xo - x); 
             const double dy = particles[j].y + (yo - y);
             const double dz = particles[j].z + (zo - z);
             const double r2 = dx*dx + dy*dy + dz*dz;
             const double _r  = sqrt(r2);
             const double prefac = GM/(_r*_r*_r);
-			if (i==ASSIST_BODY_EARTH && _r < kk_test_distance){
-				printf("IMPACT: %25.16le R is %f \n", jd_ref+t, _r);
+			if (i==ASSIST_BODY_EARTH && _r < impact_distance && assist->recorded_impacts->impact_jd[j]==0){
+				assist->recorded_impacts->impact_jd[j] = jd_ref+t;
+				assist->recorded_impacts->impact_dist[j] = _r;
+				printf("IMPACT: %25.16le R is %f, particle %i \n", assist->recorded_impacts->impact_jd[j], assist->recorded_impacts->impact_dist[j], j);
 			}
+
             if(outfile){
                 fprintf(outfile, "%3d %25.16le %25.16le %25.16le %25.16le %25.16le %25.16le %25.16le %25.16le\n", i, jd_ref+t, GM, dx, dy, dz, -prefac*dx, -prefac*dy, -prefac*dz);
 		fflush(outfile);		
@@ -351,7 +350,7 @@ static void assist_additional_force_direct(struct reb_simulation* sim, double xo
     // Acceleration of variational particles due to direct forces from massive bodies 
     // Loop over the perturbers
     // We should put a check at the top to see if there are any variational
-    // particles.
+    // particles
 
     for (int k=0; k < ASSIST_BODY_NPLANETS + spl_num; k++){
         int i; // ordered index

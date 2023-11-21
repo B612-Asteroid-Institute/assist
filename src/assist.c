@@ -287,9 +287,16 @@ void assist_init(struct assist_extras* assist, struct reb_simulation* sim, struc
     assist->gr_eih_sources = 1; // Only include Sun by default
     assist->ephem_cache->items = calloc(N_total*7, sizeof(struct assist_cache_item));
     assist->ephem_cache->t = malloc(N_total*7*sizeof(double));
+
     for (int i=0;i<7*N_total;i++){
         assist->ephem_cache->t[i] = -1e306;
     }
+
+    assist->recorded_impacts = calloc(1, sizeof(struct assist_impact));
+    assist->recorded_impacts->impact_jd = malloc(N_total*sizeof(double));
+    assist->recorded_impacts->impact_dist = malloc(N_total*sizeof(double));
+    //assist->recorded_impacts->impact_jd = calloc(N_total, sizeof(double));
+    //assist->recorded_impacts->impact_dist = calloc(N_total, sizeof(double));
 
     assist->ephem = ephem;
     assist->particle_params = NULL;
@@ -377,7 +384,6 @@ struct reb_particle assist_get_particle_with_error(struct assist_ephem* ephem, c
     int flag = assist_all_ephem(ephem, NULL, particle_id, t, &GM, &p.x, &p.y, &p.z, &p.vx, &p.vy, &p.vz, &p.ax, &p.ay, &p.az);
     *error = flag;
     p.m = GM; // Note this is GM, not M
-    printf("KK ASSIST assist_get_particle_with_error\n");
     return p;
 }
 
@@ -483,8 +489,6 @@ void assist_integrate_or_interpolate(struct assist_extras* ax, double t){
     
     sim->pre_timestep_modifications = assist_pre_timestep_modifications;
     sim->exact_finish_time = 0;
-
-    printf("KK assist_integrate_or_interpolate\n");
 
     if (ax->current_state==NULL){
         ax->current_state = malloc(sizeof(struct reb_particle)*6*sim->N);

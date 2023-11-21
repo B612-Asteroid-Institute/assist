@@ -62,11 +62,18 @@ with open(input_file, "r") as f:
         )
 
         values = coords.values[0]
-        print(values)
+        #print(values)
 
         time_jd = float(epoch_mjd) + 2400000.5
 
-        vi_initial_helio = rebound.Particle(x = values[0], # AU
+        vi_initial = rebound.Particle(x = values[0], # AU
+                                            y =  values[1],
+                                            z =  values[2],
+                                            vx= values[3], # AU/day
+                                            vy= values[4],
+                                            vz= values[5])
+        
+        vi_initial_2 = rebound.Particle(x = values[0], # AU
                                             y =  values[1],
                                             z =  values[2],
                                             vx= values[3], # AU/day
@@ -77,12 +84,9 @@ with open(input_file, "r") as f:
 
         t_initial = time_jd - ephem.jd_ref # Julian Days relative to jd_ref
 
-        sun_initial = ephem.get_particle("sun", t_initial)
-
-        vi_initial = vi_initial_helio + sun_initial
-
         sim = rebound.Simulation()
         sim.add(vi_initial)
+        sim.add(vi_initial_2)
         sim.t = t_initial
         sim.ri_ias15.min_dt = 0.001
         extras = assist.Extras(sim, ephem)
@@ -93,3 +97,4 @@ with open(input_file, "r") as f:
         #t_final = int(impact_dates[ObjID]) + 2400000.5 - ephem.jd_ref
 
         sim.integrate(t_final)
+

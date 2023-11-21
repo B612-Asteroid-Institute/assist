@@ -92,6 +92,11 @@ struct assist_ephem {
     struct spk_s* spl;
 };
 
+struct assist_impact {
+    double* impact_jd;
+    double* impact_dist;
+};
+
 struct assist_cache_item {
     double GM;
     double x;
@@ -104,7 +109,6 @@ struct assist_cache_item {
     double ay;
     double az;
 };
-
 
 struct assist_ephem_cache {
     double* t;
@@ -124,6 +128,7 @@ struct assist_extras {
     struct reb_particle* current_state;
     //particle_params* particle_params;
     double* particle_params;
+    struct assist_impact* recorded_impacts;
     int steps_done;
     int forces;
     int gr_eih_sources;
