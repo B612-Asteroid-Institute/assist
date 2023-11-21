@@ -32,7 +32,6 @@ class Extras(Structure):
         sim.update_units(("au","day","massist"))
         sim.default_plane = "frame"
         self.extras_should_free_ephem = 0
-        #self.earth_impact_occured = 0
 
     def __del__(self) -> None:
         clibassist.assist_free_pointers(byref(self))
@@ -85,8 +84,8 @@ class Extras(Structure):
                  ("geocentric", c_int),
                  ("last_state", POINTER(rebound.Particle)),
                  ("current_state", POINTER(rebound.Particle)),
-                 ("impact_state", POINTER(rebound.Particle)),
                  ("_particle_params", POINTER(c_double)),
+                 ("recorded_impacts", c_void_p),
                  ("steps_done", c_int),
                  ("_forces", c_int),
                  ("gr_eih_sources", c_int),

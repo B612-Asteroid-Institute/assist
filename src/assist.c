@@ -307,7 +307,6 @@ void assist_init(struct assist_extras* assist, struct reb_simulation* sim, struc
                      | ASSIST_FORCE_EARTH_HARMONICS
                      | ASSIST_FORCE_SUN_HARMONICS
                      | ASSIST_FORCE_GR_EIH;
-    assist->impact_state = NULL;
     assist->last_state = NULL; 
     assist->current_state = NULL; 
     sim->integrator = REB_INTEGRATOR_IAS15;
@@ -316,7 +315,6 @@ void assist_init(struct assist_extras* assist, struct reb_simulation* sim, struc
     sim->extras_cleanup = assist_extras_cleanup;
     sim->additional_forces = assist_additional_forces;
     sim->force_is_velocity_dependent = 1;
-    //sim->earth_impact_occured = 0;
 }
 
 void assist_free_pointers(struct assist_extras* assist){
@@ -328,9 +326,9 @@ void assist_free_pointers(struct assist_extras* assist){
         free(assist->last_state);
         assist->last_state = NULL;
     }
-    if (assist->impact_state){
-        free(assist->impact_state);
-        assist->impact_state = NULL;
+    if (assist->recorded_impacts){
+        free(assist->recorded_impacts);
+        assist->recorded_impacts = NULL;
     }
     if (assist->current_state){
         free(assist->current_state);
