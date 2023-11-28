@@ -8,6 +8,7 @@ import unittest
 import math
 import numpy as np
 import os
+import ctypes
 
 input_file = "100_impactors_ex.csv"
 
@@ -99,6 +100,21 @@ with open(input_file, "r") as f:
         sim.integrate(t_final)
 
         impacts = extras.recorded_impacts
-        print(impacts.impact_jd)
-        print(impacts.impact_dist)
+        #x = ctypes.POINTER(ctypes.c_double)
+        #x = impacts.impact_jd
+        a = ctypes.c_double * 2
+        test = a()
+        a = impacts.impact_jd
+
+        x = ctypes.POINTER(ctypes.c_double * 2)
+        x = extras.recorded_impacts.impact_jd
+        print(x)
+
+
+        #print(impacts.impact_jd[0])
+        #print(impacts.impact_dist)
+
+        extras.particle_params = np.array([4.999999873689E-13, -2.901085508711E-14, 0.0])
+        #print(extras._particle_params)
+
 
