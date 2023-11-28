@@ -86,11 +86,9 @@ class Extras(Structure):
                  ("last_state", POINTER(rebound.Particle)),
                  ("current_state", POINTER(rebound.Particle)),
                  ("_particle_params", POINTER(c_double)),
-                 ("recorded_impacts", Impact),
+                 ("recorded_impacts", POINTER(Impact)),
                  ("steps_done", c_int),
                  ("_forces", c_int),
                  ("gr_eih_sources", c_int),
         ]
-
-# avoid circular imports
 

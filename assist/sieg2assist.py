@@ -4,6 +4,7 @@ from adam_core.coordinates import Times
 from adam_core.coordinates import Origin, OriginCodes
 import rebound
 import assist
+from assist.impact import Impact
 import unittest
 import math
 import numpy as np
@@ -99,22 +100,18 @@ with open(input_file, "r") as f:
 
         sim.integrate(t_final)
 
-        impacts = extras.recorded_impacts
-        #x = ctypes.POINTER(ctypes.c_double)
-        #x = impacts.impact_jd
-        a = ctypes.c_double * 2
-        test = a()
-        a = impacts.impact_jd
+        def get_assist_impact():
+            return extras.recorded_impacts
 
-        x = ctypes.POINTER(ctypes.c_double * 2)
-        x = extras.recorded_impacts.impact_jd
-        print(x)
+        get_assist_impact.restype = ctypes.POINTER(Impact)
 
+        # Call the C function to get the struct pointer
+        assist_impact_struct_ptr = get_assist_impact()
 
-        #print(impacts.impact_jd[0])
-        #print(impacts.impact_dist)
+        # Dereference the pointer to get the actual Impact structure
+        assist_impact_struct = assist_impact_struct_ptr.contents
 
-        extras.particle_params = np.array([4.999999873689E-13, -2.901085508711E-14, 0.0])
-        #print(extras._particle_params)
-
-
+        # Convert the arrays to Python lists
+        n = 2  # Replace 10 with the actual length of your arrays
+        impact_jd_list = [assist_impact_struct.impact_jd[i] for i in range(n)]
+        impact_dist_list = [assist_impact_struct.impact_dist[i] for i in range(n)]
