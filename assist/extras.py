@@ -5,6 +5,7 @@ from ctypes import Structure, c_double, POINTER, c_int, c_uint, c_long, c_ulong,
 import rebound
 import warnings
 from .ephem import Ephem
+from .impact import Impact
 import numpy as np
 import numpy.typing as npt
 
@@ -85,7 +86,7 @@ class Extras(Structure):
                  ("last_state", POINTER(rebound.Particle)),
                  ("current_state", POINTER(rebound.Particle)),
                  ("_particle_params", POINTER(c_double)),
-                 ("recorded_impacts", c_void_p),
+                 ("recorded_impacts", Impact),
                  ("steps_done", c_int),
                  ("_forces", c_int),
                  ("gr_eih_sources", c_int),

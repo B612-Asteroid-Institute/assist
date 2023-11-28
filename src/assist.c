@@ -295,8 +295,6 @@ void assist_init(struct assist_extras* assist, struct reb_simulation* sim, struc
     assist->recorded_impacts = calloc(1, sizeof(struct assist_impact));
     assist->recorded_impacts->impact_jd = malloc(N_total*sizeof(double));
     assist->recorded_impacts->impact_dist = malloc(N_total*sizeof(double));
-    //assist->recorded_impacts->impact_jd = calloc(N_total, sizeof(double));
-    //assist->recorded_impacts->impact_dist = calloc(N_total, sizeof(double));
 
     assist->ephem = ephem;
     assist->particle_params = NULL;

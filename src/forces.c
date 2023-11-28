@@ -322,7 +322,7 @@ static void assist_additional_force_direct(struct reb_simulation* sim, double xo
         for (int j=0; j<N_real; j++){
 
             // Compute position vector of test particle j relative to massive body i.
-			const double impact_distance = 0.00004928;
+			const double impact_distance = 0.00004261;
             const double dx = particles[j].x + (xo - x); 
             const double dy = particles[j].y + (yo - y);
             const double dz = particles[j].z + (zo - z);

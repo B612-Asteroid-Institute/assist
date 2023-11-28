@@ -98,3 +98,7 @@ with open(input_file, "r") as f:
 
         sim.integrate(t_final)
 
+        impacts = extras.recorded_impacts
+        print(impacts.impact_jd)
+        print(impacts.impact_dist)
+
