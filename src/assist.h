@@ -93,10 +93,16 @@ struct assist_ephem {
 };
 
 struct assist_impact {
+    u_int32_t* hash;
+    int N;
     double* impact_jd;
     double* impact_dist;
-    int N;
-    uint32_t* hash;
+    double* x;
+    double* y;
+    double* z;
+    double* vx;
+    double* vy;
+    double* vz;
 };
 
 struct assist_cache_item {

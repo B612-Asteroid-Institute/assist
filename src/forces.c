@@ -333,6 +333,13 @@ static void assist_additional_force_direct(struct reb_simulation* sim, double xo
                 assist->recorded_impacts->impact_jd[j] = jd_ref+t;
                 assist->recorded_impacts->impact_dist[j] = _r;
 				assist->recorded_impacts->hash[j] = particles[j].hash;
+                assist->recorded_impacts->x[j] = particles[j].x;
+                assist->recorded_impacts->y[j] = particles[j].y;
+                assist->recorded_impacts->z[j] = particles[j].z;
+                assist->recorded_impacts->vx[j] = particles[j].vx;
+                assist->recorded_impacts->vy[j] = particles[j].vy;
+                assist->recorded_impacts->vz[j] = particles[j].vz;
+
             }
 
             if(outfile){

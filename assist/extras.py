@@ -85,21 +85,31 @@ class Extras(Structure):
         Retrieves recorded impacts and returns them as a list of dictionaries.
         Assumes a negative or NaN value in impact_jd indicates no impact recorded for that slot.
         """
-        # N_total = len(self.ephem.N)
         N_total = self.recorded_impacts.contents.N
         impacts_list = []
         for i in range(N_total):
-            
             impact_jd = self.recorded_impacts.contents.impact_jd[i]
             impact_dist = self.recorded_impacts.contents.impact_dist[i]
-            hash = self.recorded_impacts.contents.hash[i]
+            hash_ = self.recorded_impacts.contents.hash[i]
+            x = self.recorded_impacts.contents.x[i]
+            y = self.recorded_impacts.contents.y[i]
+            z = self.recorded_impacts.contents.z[i]
+            vx = self.recorded_impacts.contents.vx[i]
+            vy = self.recorded_impacts.contents.vy[i]
+            vz = self.recorded_impacts.contents.vz[i]
 
             # Check if the values represent a recorded impact
             if impact_jd > 0 and not math.isnan(impact_jd):
                 impact_data = {
-                    'hash': hash,
+                    'hash': hash_,
                     'time': impact_jd,
                     'distance': impact_dist,
+                    'x': x,
+                    'y': y,
+                    'z': z,
+                    'vx': vx,
+                    'vy': vy,
+                    'vz': vz,
                 }
                 impacts_list.append(impact_data)
 
