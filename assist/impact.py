@@ -4,5 +4,6 @@ class Impact(Structure):
 
     _fields_ =  [("impact_jd", POINTER(c_double)),
                  ("impact_dist", POINTER(c_double)),
-            ]
+                 ("N", c_int),
+    ]
 

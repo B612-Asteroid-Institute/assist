@@ -112,6 +112,10 @@ with open(input_file, "r") as f:
         assist_impact_struct = assist_impact_struct_ptr.contents
 
         # Convert the arrays to Python lists
-        n = 2  # Replace 10 with the actual length of your arrays
+        n = assist_impact_struct.N  # Replace 10 with the actual length of your arrays
+        print(n)
         impact_jd_list = [assist_impact_struct.impact_jd[i] for i in range(n)]
         impact_dist_list = [assist_impact_struct.impact_dist[i] for i in range(n)]
+
+        print(impact_jd_list)
+        print(impact_dist_list)
