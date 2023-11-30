@@ -95,6 +95,7 @@ struct assist_ephem {
 struct assist_impact {
     double* impact_jd;
     double* impact_dist;
+    int N;
     uint32_t* hash;
 };
 

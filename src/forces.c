@@ -332,6 +332,7 @@ static void assist_additional_force_direct(struct reb_simulation* sim, double xo
             if (i==ASSIST_BODY_EARTH && _r < impact_distance && assist->recorded_impacts->impact_jd[j]==0){
                 assist->recorded_impacts->impact_jd[j] = jd_ref+t;
                 assist->recorded_impacts->impact_dist[j] = _r;
+				assist->recorded_impacts->hash[j] = particles[j].hash;
             }
 
             if(outfile){

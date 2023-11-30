@@ -86,17 +86,18 @@ class Extras(Structure):
         Assumes a negative or NaN value in impact_jd indicates no impact recorded for that slot.
         """
         # N_total = len(self.ephem.N)
-        N_total = 100
+        N_total = self.recorded_impacts.contents.N
         impacts_list = []
-
         for i in range(N_total):
+            
             impact_jd = self.recorded_impacts.contents.impact_jd[i]
             impact_dist = self.recorded_impacts.contents.impact_dist[i]
+            hash = self.recorded_impacts.contents.hash[i]
 
             # Check if the values represent a recorded impact
             if impact_jd > 0 and not math.isnan(impact_jd):
                 impact_data = {
-                    'particle_index': i,
+                    'hash': hash,
                     'time': impact_jd,
                     'distance': impact_dist,
                 }

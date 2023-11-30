@@ -292,10 +292,17 @@ void assist_init(struct assist_extras* assist, struct reb_simulation* sim, struc
         assist->ephem_cache->t[i] = -1e306;
     }
 
+    int N_real = sim->N - sim->N_var;
+
     assist->recorded_impacts = calloc(1, sizeof(struct assist_impact));
-    assist->recorded_impacts->impact_jd = malloc(N_total*sizeof(double));
-    assist->recorded_impacts->impact_dist = malloc(N_total*sizeof(double));
-    assist->recorded_impacts->hash = malloc(N_total*sizeof(uint32_t));
+    assist->recorded_impacts->impact_jd = malloc(N_real*sizeof(double));
+    assist->recorded_impacts->impact_dist = malloc(N_real*sizeof(double));
+    assist->recorded_impacts->N = N_real;
+    assist->recorded_impacts->hash = calloc(N_real, sizeof(uint32_t));
+
+    if (assist->recorded_impacts->hash == NULL) {
+        fprintf(stderr, "(ASSIST) Error: Could not allocate memory for impact hash.\n");
+    }
 
     assist->ephem = ephem;
     assist->particle_params = NULL;
