@@ -44,7 +44,7 @@ const int reb_max_messages_N = 10;
 #define str(s) #s
 
 const char* assist_build_str = __DATE__ " " __TIME__;   // Date and time build string. 
-const char* assist_version_str = "1.1.3";         // **VERSIONLINE** This line gets updated automatically. Do not edit manually.
+const char* assist_version_str = "1.1.7";         // **VERSIONLINE** This line gets updated automatically. Do not edit manually.
 const char* assist_githash_str = STRINGIFY(ASSISTGITHASH);// This line gets updated automatically. Do not edit manually.
 
 
@@ -295,6 +295,7 @@ void assist_init(struct assist_extras* assist, struct reb_simulation* sim, struc
     assist->recorded_impacts = calloc(1, sizeof(struct assist_impact));
     assist->recorded_impacts->impact_jd = malloc(N_total*sizeof(double));
     assist->recorded_impacts->impact_dist = malloc(N_total*sizeof(double));
+    assist->recorded_impacts->hash = malloc(N_total*sizeof(uint32_t));
 
     assist->ephem = ephem;
     assist->particle_params = NULL;

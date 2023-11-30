@@ -1,13 +1,17 @@
-from typing import NoReturn, List
-
-from . import clibassist
-from ctypes import Structure, c_double, POINTER, c_int, c_uint, c_long, c_ulong, c_void_p, c_char_p, CFUNCTYPE, byref, c_uint32, c_uint, cast, c_char
-import rebound
+import math
 import warnings
-from .ephem import Ephem
-from .impact import Impact
+from ctypes import (CFUNCTYPE, POINTER, Structure, byref, c_char, c_char_p,
+                    c_double, c_int, c_long, c_uint, c_uint32, c_ulong,
+                    c_void_p, cast)
+from typing import List, NoReturn
+
 import numpy as np
 import numpy.typing as npt
+import rebound
+
+from . import clibassist
+from .ephem import Ephem
+from .impact import Impact
 
 ASSIST_FORCES = {
     "SUN"                : 0x01,
@@ -76,6 +80,29 @@ class Extras(Structure):
         value_p = self._particle_params_reference.ctypes.data_as(POINTER(c_double))
         self._particle_params = value_p
 
+    def get_impacts(self):
+        """
+        Retrieves recorded impacts and returns them as a list of dictionaries.
+        Assumes a negative or NaN value in impact_jd indicates no impact recorded for that slot.
+        """
+        # N_total = len(self.ephem.N)
+        N_total = 100
+        impacts_list = []
+
+        for i in range(N_total):
+            impact_jd = self.recorded_impacts.contents.impact_jd[i]
+            impact_dist = self.recorded_impacts.contents.impact_dist[i]
+
+            # Check if the values represent a recorded impact
+            if impact_jd > 0 and not math.isnan(impact_jd):
+                impact_data = {
+                    'particle_index': i,
+                    'time': impact_jd,
+                    'distance': impact_dist,
+                }
+                impacts_list.append(impact_data)
+
+        return impacts_list
 
 
     _fields_ =  [("_sim", POINTER(rebound.Simulation)),
