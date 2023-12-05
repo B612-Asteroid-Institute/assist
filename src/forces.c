@@ -330,15 +330,28 @@ static void assist_additional_force_direct(struct reb_simulation* sim, double xo
             const double _r  = sqrt(r2);
             const double prefac = GM/(_r*_r*_r);
             if (i==ASSIST_BODY_EARTH && _r < impact_distance && assist->recorded_impacts->impact_jd[j]==0){
-                assist->recorded_impacts->impact_jd[j] = jd_ref+t;
+				// Reallocate the size of the arrays
+				assist->recorded_impacts->N_impacts += 1;
+				assist->recorded_impacts->hash = realloc(assist->recorded_impacts->hash, assist->recorded_impacts->N_impacts*sizeof(u_int32_t));
+				assist->recorded_impacts->impact_jd = realloc(assist->recorded_impacts->impact_jd, assist->recorded_impacts->N_impacts*sizeof(double));
+				assist->recorded_impacts->impact_dist = realloc(assist->recorded_impacts->impact_dist, assist->recorded_impacts->N_impacts*sizeof(double));
+				assist->recorded_impacts->x = realloc(assist->recorded_impacts->x, assist->recorded_impacts->N_impacts*sizeof(double));
+				assist->recorded_impacts->y = realloc(assist->recorded_impacts->y, assist->recorded_impacts->N_impacts*sizeof(double));
+				assist->recorded_impacts->z = realloc(assist->recorded_impacts->z, assist->recorded_impacts->N_impacts*sizeof(double));
+				assist->recorded_impacts->vx = realloc(assist->recorded_impacts->vx, assist->recorded_impacts->N_impacts*sizeof(double));
+				assist->recorded_impacts->vy = realloc(assist->recorded_impacts->vy, assist->recorded_impacts->N_impacts*sizeof(double));
+				assist->recorded_impacts->vz = realloc(assist->recorded_impacts->vz, assist->recorded_impacts->N_impacts*sizeof(double));
+				// Record the impact
+                assist->recorded_impacts->impact_jd[j] = t + jd_ref;
                 assist->recorded_impacts->impact_dist[j] = _r;
-				assist->recorded_impacts->hash[j] = particles[j].hash;
+                assist->recorded_impacts->hash[j] = particles[j].hash;
                 assist->recorded_impacts->x[j] = particles[j].x;
                 assist->recorded_impacts->y[j] = particles[j].y;
                 assist->recorded_impacts->z[j] = particles[j].z;
                 assist->recorded_impacts->vx[j] = particles[j].vx;
                 assist->recorded_impacts->vy[j] = particles[j].vy;
                 assist->recorded_impacts->vz[j] = particles[j].vz;
+                
 
             }
 

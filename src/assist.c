@@ -292,20 +292,19 @@ void assist_init(struct assist_extras* assist, struct reb_simulation* sim, struc
         assist->ephem_cache->t[i] = -1e306;
     }
 
-    int N_real = sim->N - sim->N_var;
-    fprintf(stderr, "(ASSIST) Allocating memory for %d recorded impacts.\n", N_real);
+    // int N_real = sim->N - sim->N_var;
 
     assist->recorded_impacts = calloc(1, sizeof(struct assist_impact));
-    assist->recorded_impacts->N = N_real;
-    assist->recorded_impacts->hash = malloc(N_real*sizeof(uint32_t));
-    assist->recorded_impacts->impact_jd = malloc(N_real*sizeof(double));
-    assist->recorded_impacts->impact_dist = malloc(N_real*sizeof(double));
-    assist->recorded_impacts->x = malloc(N_real*sizeof(double));
-    assist->recorded_impacts->y = malloc(N_real*sizeof(double));
-    assist->recorded_impacts->z = malloc(N_real*sizeof(double));
-    assist->recorded_impacts->vx = malloc(N_real*sizeof(double));
-    assist->recorded_impacts->vy = malloc(N_real*sizeof(double));
-    assist->recorded_impacts->vz = malloc(N_real*sizeof(double));
+    assist->recorded_impacts->N_impacts = 0;
+    assist->recorded_impacts->hash = malloc(0*sizeof(uint32_t));
+    assist->recorded_impacts->impact_jd = malloc(0*sizeof(double));
+    assist->recorded_impacts->impact_dist = malloc(0*sizeof(double));
+    assist->recorded_impacts->x = malloc(0*sizeof(double));
+    assist->recorded_impacts->y = malloc(0*sizeof(double));
+    assist->recorded_impacts->z = malloc(0*sizeof(double));
+    assist->recorded_impacts->vx = malloc(0*sizeof(double));
+    assist->recorded_impacts->vy = malloc(0*sizeof(double));
+    assist->recorded_impacts->vz = malloc(0*sizeof(double));
 
     assist->ephem = ephem;
     assist->particle_params = NULL;

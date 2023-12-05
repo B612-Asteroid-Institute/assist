@@ -85,9 +85,9 @@ class Extras(Structure):
         Retrieves recorded impacts and returns them as a list of dictionaries.
         Assumes a negative or NaN value in impact_jd indicates no impact recorded for that slot.
         """
-        N_total = self.recorded_impacts.contents.N
+        N_impacts = self.recorded_impacts.contents.N_impacts;
         impacts_list = []
-        for i in range(N_total):
+        for i in range(N_impacts):
             impact_jd = self.recorded_impacts.contents.impact_jd[i]
             impact_dist = self.recorded_impacts.contents.impact_dist[i]
             hash_ = self.recorded_impacts.contents.hash[i]

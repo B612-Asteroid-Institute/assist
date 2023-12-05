@@ -5,7 +5,7 @@ from ctypes import (CFUNCTYPE, POINTER, Structure, byref, c_char, c_char_p,
 
 class Impact(Structure):
     _fields_ = [
-        ("N", c_int),
+        ("N_impacts", c_int),
         ("hash", POINTER(c_uint32)),
         ("impact_jd", POINTER(c_double)),
         ("impact_dist", POINTER(c_double)),
