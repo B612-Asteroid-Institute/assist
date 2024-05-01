@@ -37,14 +37,11 @@
 #include "planets.h"
 #include "forces.h"
 
-const int reb_max_messages_length = 1024;   // needs to be constant expression for array size
-const int reb_max_messages_N = 10;
-
 #define STRINGIFY(s) str(s)
 #define str(s) #s
 
 const char* assist_build_str = __DATE__ " " __TIME__;   // Date and time build string. 
-const char* assist_version_str = "1.1.3";         // **VERSIONLINE** This line gets updated automatically. Do not edit manually.
+const char* assist_version_str = "1.1.9";         // **VERSIONLINE** This line gets updated automatically. Do not edit manually.
 const char* assist_githash_str = STRINGIFY(ASSISTGITHASH);// This line gets updated automatically. Do not edit manually.
 
 
@@ -287,17 +284,9 @@ void assist_init(struct assist_extras* assist, struct reb_simulation* sim, struc
     assist->gr_eih_sources = 1; // Only include Sun by default
     assist->ephem_cache->items = calloc(N_total*7, sizeof(struct assist_cache_item));
     assist->ephem_cache->t = malloc(N_total*7*sizeof(double));
-
     for (int i=0;i<7*N_total;i++){
         assist->ephem_cache->t[i] = -1e306;
     }
-
-    int N_real = sim->N - sim->N_var;
-
-    assist->recorded_impacts = calloc(1, sizeof(struct assist_impact));
-    assist->recorded_impacts->impact_jd = malloc(N_real*sizeof(double));
-    assist->recorded_impacts->impact_dist = malloc(N_real*sizeof(double));
-    assist->recorded_impacts->N = N_real;
 
     assist->ephem = ephem;
     assist->particle_params = NULL;
@@ -316,6 +305,7 @@ void assist_init(struct assist_extras* assist, struct reb_simulation* sim, struc
     sim->extras_cleanup = assist_extras_cleanup;
     sim->additional_forces = assist_additional_forces;
     sim->force_is_velocity_dependent = 1;
+    sim->ri_ias15.adaptive_mode = 1; // Use legacy IAS15 timestepping mode
 }
 
 void assist_free_pointers(struct assist_extras* assist){
@@ -326,10 +316,6 @@ void assist_free_pointers(struct assist_extras* assist){
     if (assist->last_state){
         free(assist->last_state);
         assist->last_state = NULL;
-    }
-    if (assist->recorded_impacts){
-        free(assist->recorded_impacts);
-        assist->recorded_impacts = NULL;
     }
     if (assist->current_state){
         free(assist->current_state);
@@ -497,11 +483,13 @@ void assist_integrate_or_interpolate(struct assist_extras* ax, double t){
     }
 
     double dts = copysign(1., sim->dt_last_done);
-    if ( !(dts*(sim->t-sim->dt_last_done)  <  dts*t &&  dts*t < dts*sim->t) ){
+    double h = 1.0-(sim->t -t) / sim->dt_last_done; 
+    if ( !(dts*(sim->t-sim->dt_last_done)  <  dts*t &&  dts*t < dts*sim->t) && isnormal(h) ){
         // Integrate if requested time not in interval of last timestep
         reb_simulation_integrate(sim, t);
     }
-    double h = 1.0-(sim->t -t) / sim->dt_last_done; 
+    
+    h = 1.0-(sim->t -t) / sim->dt_last_done; 
     if (sim->t - t==0.){
         memcpy(ax->current_state, sim->particles, sizeof(struct reb_particle)*sim->N);
     }else if (h<0.0 || h>=1.0 || !isnormal(h)){
@@ -591,4 +579,5 @@ static void assist_pre_timestep_modifications(struct reb_simulation* sim){
     reb_simulation_update_acceleration(sim); // This will later be recalculated. Could be optimized.
     memcpy(assist->last_state, sim->particles, sizeof(struct reb_particle)*sim->N);
 }
+
 
