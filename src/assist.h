@@ -88,8 +88,10 @@ enum ASSIST_BODY {
 
 struct assist_ephem {
     double jd_ref;
-    struct jpl_s* jpl;
-    struct spk_s* spl;
+    struct jpl_s* jpl_planets;
+    struct spk_global* spk_global;
+    struct spk_s* spk_planets;
+    struct spk_s* spk_asteroids;
 };
 
 struct assist_cache_item {
