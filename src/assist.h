@@ -203,5 +203,5 @@ struct assist_ephem* assist_ephem_create(char *planets_file_name, char *asteroid
  */
 ///
 int assist_ephem_init(struct assist_ephem* ephem, char *user_planets_path, char *user_asteroids_path);
-
+double assist_get_constant(struct assist_extras* assist, const char* name);
 #endif

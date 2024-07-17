@@ -241,8 +241,7 @@ int assist_all_ephem(struct assist_ephem* ephem, struct assist_ephem_cache* ephe
             if(flag != ASSIST_SUCCESS) return(flag);
 
             // For Earth and Moon, we need to translate from EMB to SSB.
-            // This is done by subtracting the Earth's position from the
-            // Moon's position.
+            // This is done by adding the EMB position relative to the SSB.
             if (i == ASSIST_BODY_MOON){
                 double GMb, xb, yb, zb, vxb, vyb, vzb, axb, ayb, azb;
                 flag = assist_spk_calc_planets(ephem->spk_planets, jd_ref, t, 3, &GMb, &xb, &yb, &zb, &vxb, &vyb, &vzb, &axb, &ayb, &azb);
@@ -251,12 +250,12 @@ int assist_all_ephem(struct assist_ephem* ephem, struct assist_ephem_cache* ephe
                 *vx += vxb; *vy += vyb; *vz += vzb;
                 *ax += axb; *ay += ayb; *az += azb;
             } else if (i == ASSIST_BODY_EARTH){
-                double GMm, xm, ym, zm, vxm, vym, vzm, axm, aym, azm;
-                flag = assist_spk_calc_planets(ephem->spk_planets, jd_ref, t, 3, &GMm, &xm, &ym, &zm, &vxm, &vym, &vzm, &axm, &aym, &azm);
+                double GMb, xb, yb, zb, vxb, vyb, vzb, axb, ayb, azb;
+                flag = assist_spk_calc_planets(ephem->spk_planets, jd_ref, t, 3, &GMb, &xb, &yb, &zb, &vxb, &vyb, &vzb, &axb, &ayb, &azb);
                 if(flag != ASSIST_SUCCESS) return(flag);
-                *x += xm; *y += ym; *z += zm;
-                *vx += vxm; *vy += vym; *vz += vzm;
-                *ax += axm; *ay += aym; *az += azm;
+                *x += xb; *y += yb; *z += zb;
+                *vx += vxb; *vy += vyb; *vz += vzb;
+                *ax += axb; *ay += ayb; *az += azb;
             }
 
         }else{
@@ -521,23 +520,10 @@ static void assist_additional_force_earth_J2J4(struct reb_simulation* sim, doubl
     xr = xe;  yr = ye;  zr = ze;
     xr = xe;  yr = ye;  zr = ze;
 
-    // Modify the above commented code to be conditional on whether
-    // we are using ephem->jpl_planets or ephem->spk_global.
-
-    double J2e, J3e, J4e, Re_eq;
-    if (ephem->jpl_planets){
-        J2e = ephem->jpl_planets->J2E;
-        J3e = ephem->jpl_planets->J3E;
-        J4e = ephem->jpl_planets->J4E;
-        Re_eq = ephem->jpl_planets->RE/ephem->jpl_planets->AU;
-    }else if (ephem->spk_global){
-        J2e = ephem->spk_global->con.J2E;
-        J3e = ephem->spk_global->con.J3E;
-        J4e = ephem->spk_global->con.J4E;
-        Re_eq = ephem->spk_global->con.RE/ephem->spk_global->con.AU;
-    }else{
-        reb_simulation_error(sim, "No constants available.");
-    }
+    double J2e = assist_get_constant(assist, "J2E");
+    double J3e = assist_get_constant(assist, "J3E");
+    double J4e = assist_get_constant(assist, "J4E");
+    double Re_eq = assist_get_constant(assist, "RE")/assist_get_constant(assist, "AU");
 
 
     // Unit vector to equatorial pole at the epoch
@@ -732,18 +718,9 @@ static void assist_additional_force_solar_J2(struct reb_simulation* sim, double 
     assist_all_ephem(ephem, assist->ephem_cache, ASSIST_BODY_SUN, t, &GM, &xr, &yr, &zr, &vxr, &vyr, &vzr, &axr, &ayr, &azr);
     const double GMsun = GM;    
 
-    double au, Rs_eq, J2s;
-    if (ephem->jpl_planets){
-        au = ephem->jpl_planets->AU;
-        Rs_eq = ephem->jpl_planets->ASUN/au;
-        J2s = ephem->jpl_planets->J2SUN;
-    }else if (ephem->spk_global){
-        au = ephem->spk_global->con.AU;
-        Rs_eq = ephem->spk_global->con.ASUN/au;
-        J2s = ephem->spk_global->con.J2SUN;
-    }else{
-        reb_simulation_error(sim, "No constants available.");
-    }
+    double au = assist_get_constant(assist, "AU");
+    double Rs_eq = assist_get_constant(assist, "ASUN")/au;
+    double J2s = assist_get_constant(assist, "J2SUN");
 
     // Hard-coded constants.  BEWARE!
     double RAs = 286.13*M_PI/180.;
@@ -1154,16 +1131,8 @@ static void assist_additional_force_potential_GR(struct reb_simulation* sim,
     const double jd_ref = ephem->jd_ref;
     
     // Nobili and Roxburgh GR treatment
-    double au, c;
-    if (ephem->jpl_planets){
-        au = ephem->jpl_planets->AU;
-        c = (ephem->jpl_planets->CLIGHT/au)*86400;
-    }else if (ephem->spk_global){
-        au = ephem->spk_global->con.AU;
-        c = (ephem->spk_global->con.CLIGHT/au)*86400;
-    }else{
-        reb_simulation_error(sim, "No constants available.");
-    }
+    double au = assist_get_constant(assist, "AU");
+    double c = (assist_get_constant(assist, "CLIGHT") / au) * 86400;
     const double C2 = c*c;  
     
     const unsigned int N = sim->N;  // N includes real+variational particles
@@ -1268,16 +1237,8 @@ static void assist_additional_force_simple_GR(struct reb_simulation* sim,
     const double jd_ref = ephem->jd_ref;
     
     // Damour and Deruelle solar GR treatment
-    double au, c;
-    if (ephem->jpl_planets){
-        au = ephem->jpl_planets->AU;
-        c = (ephem->jpl_planets->CLIGHT/au)*86400;
-    }else if (ephem->spk_global){
-        au = ephem->spk_global->con.AU;
-        c = (ephem->spk_global->con.CLIGHT/au)*86400;
-    }else{
-        reb_simulation_error(sim, "No constants available.");
-    }
+    double au = assist_get_constant(assist, "AU");
+    double c = (assist_get_constant(assist, "CLIGHT") / au) * 86400;
 
     const double C2 = c*c; 
     
@@ -1410,16 +1371,8 @@ static void assist_additional_force_eih_GR(struct reb_simulation* sim,
     // This is one of three options for GR.
     // This version is only rarely needed.
 
-    double au, c;
-    if (ephem->jpl_planets){
-        au = ephem->jpl_planets->AU;
-        c = (ephem->jpl_planets->CLIGHT/au)*86400;
-    }else if (ephem->spk_global){
-        au = ephem->spk_global->con.AU;
-        c = (ephem->spk_global->con.CLIGHT/au)*86400;
-    }else{
-        reb_simulation_error(sim, "No constants available.");
-    }
+    double au = assist_get_constant(assist, "AU");
+    double c = (assist_get_constant(assist, "CLIGHT") / au) * 86400;
     const double C2 = c*c;
     const double over_C2 = 1./(c*c);
 

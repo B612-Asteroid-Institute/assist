@@ -605,3 +605,37 @@ static void assist_pre_timestep_modifications(struct reb_simulation* sim){
     memcpy(assist->last_state, sim->particles, sizeof(struct reb_particle)*sim->N);
 }
 
+double assist_get_constant(struct assist_extras* assist, const char* constant_name) {
+    // First, check if the constant is in jpl_s struct
+    struct assist_ephem* ephem = assist->ephem;
+
+    if (ephem->jpl_planets != NULL) {
+        if (strcmp(constant_name, "AU") == 0) return ephem->jpl_planets->AU;
+        if (strcmp(constant_name, "EMRAT") == 0) return ephem->jpl_planets->cem;
+        if (strcmp(constant_name, "J2E") == 0) return ephem->jpl_planets->J2E;
+        if (strcmp(constant_name, "J3E") == 0) return ephem->jpl_planets->J3E;
+        if (strcmp(constant_name, "J4E") == 0) return ephem->jpl_planets->J4E;
+        if (strcmp(constant_name, "J2SUN") == 0) return ephem->jpl_planets->J2SUN;
+        if (strcmp(constant_name, "RE") == 0) return ephem->jpl_planets->RE;
+        if (strcmp(constant_name, "CLIGHT") == 0) return ephem->jpl_planets->CLIGHT;
+        if (strcmp(constant_name, "ASUN") == 0) return ephem->jpl_planets->ASUN;
+    }
+    
+    // Then, check if the constant is in spk_global struct
+    if (ephem->spk_global != NULL) {
+        struct spk_constants* con = &ephem->spk_global->con;
+        if (strcmp(constant_name, "AU") == 0) return con->AU;
+        if (strcmp(constant_name, "EMRAT") == 0) return con->EMRAT;
+        if (strcmp(constant_name, "J2E") == 0) return con->J2E;
+        if (strcmp(constant_name, "J3E") == 0) return con->J3E;
+        if (strcmp(constant_name, "J4E") == 0) return con->J4E;
+        if (strcmp(constant_name, "J2SUN") == 0) return con->J2SUN;
+        if (strcmp(constant_name, "RE") == 0) return con->RE;
+        if (strcmp(constant_name, "CLIGHT") == 0) return con->CLIGHT;
+        if (strcmp(constant_name, "ASUN") == 0) return con->ASUN;
+    }
+    
+    // If the constant is not found, return some error value (NaN)
+    assist_error(assist, "Constant not found in ephemeris file.");
+    return NAN;
+}

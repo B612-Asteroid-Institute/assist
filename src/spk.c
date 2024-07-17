@@ -271,7 +271,8 @@ void assist_spk_join_masses(struct spk_s *sp, struct spk_global *sg) {
 
         for (int i = 0; i < sizeof(planet_codes) / sizeof(planet_codes[0]); i++) {
             if (sp->targets[m].code == planet_codes[i].code) {
-                mass_label = planet_codes[i].name;
+                strncpy(mass_label, planet_codes[i].name, 63);
+                mass_label[63] = '\0'; // Ensure null termination
                 break;
             }
         }
