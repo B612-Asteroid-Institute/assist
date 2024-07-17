@@ -23,66 +23,12 @@
  *      niv - number of intervals / sets of coefficients
  *
  */
-
-void printCustomFormat2(double value) {
-    char buffer[100];
-
-    // Print the double value in scientific notation using %e
-    snprintf(buffer, sizeof(buffer), "%.24e", value);
-
-    // Find the position of 'e' and replace it with 'D'
-    char *e_position = strchr(buffer, 'e');
-    if (e_position != NULL) {
-        *e_position = 'D';
-    }
-
-    // Print the final formatted string
-    printf("%s\n", buffer);
-}
-
 void assist_jpl_work(double *P, int ncm, int ncf, int niv, double t0, double t1, double *u, double *v, double *w)
 {       // next steps, hardcode P to values of val from spk function
         double T[24], S[24];
         double U[24];
         double t, c;
         int p, m, n, b;
-
-        // temporarily overwrite P values
-        // double hardcodedArray[] = {
-        //     -0x1.04c38d5402856p+20,
-        //     0x1.91fac5fd603a8p+12,
-        //     0x1.41f45273fce73p+4,
-        //     -0x1.9dbc4ccfb5c09p-5,
-        //     0x1.e01b96108170bp-9,
-        //     0x1.202b6f3e9ce51p-14,
-        //     0x1.c1d9cdd2f6c3fp-24,
-        //     -0x1.9d69f1eaf758ep-24,
-        //     0x1.e4f181c12901bp-27,
-        //     -0x1.0fac6040fdfebp-29,
-        //     0x1.020586af4e2a3p-34,
-        //     -0x1.823e218dc6c52p+18,
-        //     -0x1.f9cd57100cbd6p+12,
-        //     0x1.203d62159d8dap+4,
-        //     -0x1.59217ac1f2bf5p-4,
-        //     0x1.da5914b5cbb0bp-14,
-        //     0x1.a6acc4ca64e7ap-15,
-        //     0x1.8e4116b4f9d53p-18,
-        //     -0x1.a823972d7fe22p-24,
-        //     0x1.91aa656ae175fp-26,
-        //     0x1.5e59c19e177eap-33,
-        //     0x1.13eabc250c27fp-36,
-        //     -0x1.0d3380d2c2ba7p+17,
-        //     -0x1.c5f3b9d07d379p+11,
-        //     0x1.d10c294c4c4c5p+2,
-        //     -0x1.59470e69e9e7bp-5,
-        //     -0x1.9004bb89e55ap-14,
-        //     0x1.e6f8acdf583e4p-17,
-        //     0x1.9f8066ed13752p-19,
-        //     -0x1.5bf6f45072a5dp-25,
-        //     0x1.7a7c25447f117p-27,
-        //     0x1.40afa7767290dp-32,
-        //     0x1.d7282b29d6bccp-40
-        // };
 
         // adjust to correct interval
         t = t0 * (double)niv;
@@ -110,11 +56,9 @@ void assist_jpl_work(double *P, int ncm, int ncf, int niv, double t0, double t1,
                 u[m] = v[m] = w[m] = 0.0;
                 n = ncf * (m + b * ncm);
                 for (p = 0; p < ncf; p++) {
-                        // double truncatedP = trunc(P[n+p] * 1e11) / 1e11;
-                        double truncatedP = P[n+p];
-                        u[m] += T[p] * truncatedP;
-                        v[m] += S[p] * truncatedP * c;
-                        w[m] += U[p] * truncatedP * c * c;
+                        u[m] += T[p] * P[n+p];
+                        v[m] += S[p] * P[n+p] * c;
+                        w[m] += U[p] * P[n+p] * c * c;
                 }
         }
 
