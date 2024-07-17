@@ -43,11 +43,26 @@ int assist_spk_free(struct spk_s *pl)
     return 0;
 }
 
-void parse_comments(int fd, int first_summary_record, char **comments) {
-    // Calculate comment section bounds
-    int comment_start = RECORD_LENGTH;  // The comments start right after the file record
-    int comment_end = (first_summary_record - 1) * RECORD_LENGTH;  // Up to but not including the first summary record
+/*
+ *  assist_free_spk_constants
+ *
+ */
+int assist_free_spk_constants(struct spk_global *sg) {
 
+    if (sg->masses.names) {
+        for (int i = 0; i < sg->masses.count; i++) {
+            free(sg->masses.names[i]);
+        }
+        free(sg->masses.names);
+    }
+
+    free(sg->masses.values);
+    free(sg);
+
+    return ASSIST_SUCCESS;
+}
+
+void parse_comments(int fd, int first_summary_record, char **comments) {
     // Calculate the number of records in the comment section
     int num_records = first_summary_record - 2;  // Number of comment records
     if (num_records <= 0) {
@@ -123,17 +138,51 @@ void replace_d_with_e(char *str) {
 }
 
 
+// Reads in the constants and masses from the comments of the DE440.bsp file
+struct spk_global * assist_load_spk_constants(const char *path) {
+    // Try opening file.
+    int fd = open(path, O_RDONLY);
+    if (fd < 0){
+        return NULL;
+    }
 
-void parse_constants_and_masses(int fd, int first_summary_record, struct spk_global *sg) {
+    // Load the file record
+    union record_t * record = assist_load_spk_file_record(fd);
+
     char *comments = NULL;
-    parse_comments(fd, first_summary_record, &comments);
+    parse_comments(fd, record->file.fward, &comments);
 
     if (comments == NULL) {
         printf("No comments found.\n");
-        return;
+        return NULL;
     }
 
-    printf("Comments:\n%s\n", comments);
+    struct spk_global* sg = malloc(sizeof(struct spk_global));
+    if (!sg) {
+        // Handle memory allocation failure
+        close(fd);
+        return NULL;
+    }
+
+    // Initialize the spk_global struct using designated initializers
+    *sg = (struct spk_global){
+        .con = {
+            .AU = 0,
+            .EMRAT = 0,
+            .J2E = 0,
+            .J3E = 0,
+            .J4E = 0,
+            .J2SUN = 0,
+            .RE = 0,
+            .CLIGHT = 0,
+            .ASUN = 0
+        },
+        .masses = {
+            .names = NULL,
+            .values = NULL,
+            .count = 0
+        }
+    };
 
     char *line = strtok(comments, "\n");
     char key[64];
@@ -151,7 +200,6 @@ void parse_constants_and_masses(int fd, int first_summary_record, struct spk_glo
             if (sscanf(line, "%63s %63s", key, value_str) == 2) {
                 // Convert the value string to double
                 value = strtod(value_str, NULL);
-                printf("key: %s, value: %.16e\n", key, value); 
                 if (strcmp(key, "cau") == 0) sg->con.AU = value;
                 else if (strcmp(key, "EMRAT") == 0) sg->con.EMRAT = value;
                 else if (strcmp(key, "J2E") == 0) sg->con.J2E = value;
@@ -176,6 +224,8 @@ void parse_constants_and_masses(int fd, int first_summary_record, struct spk_glo
     }
 
     free(comments);
+    close(fd);
+    return sg;
 }
 
 /*
@@ -188,9 +238,9 @@ static double inline _jul(double eph)
     { return 2451545.0 + eph / 86400.0; }
 
 // Populate mass data for spk targets from the global masses array
-struct spk_s * assist_spk_join_masses(struct spk_s *sp, struct spk_global *sg) {
+void assist_spk_join_masses(struct spk_s *sp, struct spk_global *sg) {
     if (sp == NULL || sg == NULL) {
-        return NULL;
+        return;
     }
 
     // Create an array based mapping of the GMX and target code formats
@@ -199,17 +249,17 @@ struct spk_s * assist_spk_join_masses(struct spk_s *sp, struct spk_global *sg) {
         int code;
     } planet_codes[] = {
         {"GMS", 10}, // Sun
-        {"GM1", 199}, // Mercury
-        {"GM2", 299}, // Venus
+        {"GM1", 1}, // Mercury
+        {"GM2", 2}, // Venus
         {"GMB", 399}, // Earth
         {"GMB", 3}, // Earth-Moon Barycenter
         {"GMB", 301}, // Moon
-        {"GM4", 499}, // Mars
-        {"GM5", 599}, // Jupiter
-        {"GM6", 699}, // Saturn
-        {"GM7", 799}, // Uranus
-        {"GM8", 899}, // Neptune
-        {"GM9", 999} // Pluto
+        {"GM4", 4}, // Mars
+        {"GM5", 5}, // Jupiter
+        {"GM6", 6}, // Saturn
+        {"GM7", 7}, // Uranus
+        {"GM8", 8}, // Neptune
+        {"GM9", 9} // Pluto
     };
 
     // Join the mass data by iterating through the targets
@@ -228,7 +278,9 @@ struct spk_s * assist_spk_join_masses(struct spk_s *sp, struct spk_global *sg) {
 
         // If mass label is still empty, it is an asteroid
         if (strlen(mass_label) == 0) {
-            sprintf(mass_label, "MA%d", sp->targets[m].code);
+            // Format the asteroid code to be MAdddd where dddd is 4 digit
+            // 0 masked target code - 2000000
+            sprintf(mass_label, "MA%04d", sp->targets[m].code - 2000000);
         }
 
         // Find the mass in the masses array
@@ -246,62 +298,86 @@ struct spk_s * assist_spk_join_masses(struct spk_s *sp, struct spk_global *sg) {
                 break;
             }
         }
-    }
 
-    return sp;
+        if (sp->targets[m].mass == 0 && sp->targets[m].code != 199 && sp->targets[m].code != 299) {
+            printf("Mass not found for target code: %d\n", sp->targets[m].code);
+        }
+    }
 }
 
-// Initialize the targets of a single spk file
-struct spk_s * assist_spk_init(const char *path) {
-    // For file format information, see https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/FORTRAN/req/daf.html
+// Load the file record of an spk file
+// For file format information, see https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/FORTRAN/req/daf.html
+union record_t * assist_load_spk_file_record(int fd) {
+    // Allocate memory for the record
+    union record_t *record = calloc(1, sizeof(union record_t));
+    if (!record) {
+        fprintf(stderr, "Memory allocation failed.\n");
+        close(fd);
+        return NULL;
+    }
 
+    // Seek to the beginning of the file
+    if (lseek(fd, 0, SEEK_SET) == -1) {
+        perror("lseek");
+        free(record);
+        close(fd);
+        return NULL;
+    }
+
+    // Read the file record
+    ssize_t bytesRead = read(fd, record, RECORD_LENGTH);
+    if (bytesRead != RECORD_LENGTH) {
+        if (bytesRead == -1) {
+            perror("read");
+        } else {
+            fprintf(stderr, "Incomplete read. Expected %d bytes, got %zd bytes.\n", RECORD_LENGTH, bytesRead);
+        }
+        free(record);
+        close(fd);
+        return NULL;
+    }
+
+    // Check if the file is a valid Double Precision Array File
+    if (strncmp(record->file.locidw, "DAF/SPK", 7) != 0) {
+        fprintf(stderr,"Error parsing DAF/SPK file. Incorrect header.\n");
+        free(record);
+        close(fd);
+        return NULL;
+    }
+
+    // Check that the size of a summary record is equal to the size of our struct
+    int nc = 8 * (record->file.nd + (record->file.ni + 1) / 2);
+    if (nc != sizeof(struct sum_s)) {
+        fprintf(stderr,"Error parsing DAF/SPK file. Wrong size of summary record.\n");
+        free(record);
+        close(fd);
+        return NULL;
+    }
+
+    return record;
+}
+
+
+// Initialize the targets of a single spk file
+// Note that target masses will not be populated until assist_spk_join_masses
+// is called.
+struct spk_s * assist_spk_init(const char *path) {
     // Try opening file.
     int fd = open(path, O_RDONLY);
     if (fd < 0){
         return NULL;
     }
 
-    // Read the file record. 
-    read(fd, &record, RECORD_LENGTH);
-    // Check if the file is a valid Double Precision Array File
-    if (strncmp(record.file.locidw, "DAF/SPK", 7) != 0) {
-        fprintf(stderr,"Error parsing DAF/SPK file. Incorrect header.\n");
-        close(fd);
-        return NULL;
-    }
+    // Load the file record
+    union record_t * record = assist_load_spk_file_record(fd);
 
-    // Check that the size of a summary record is equal to the size of our struct.
-    int nc = 8 * ( record.file.nd + (record.file.ni + 1) / 2 );
-    if (nc != sizeof(struct sum_s)) {
-        fprintf(stderr,"Error parsing DAF/SPK file. Wrong size of summary record.\n");
-        close(fd);
-        return NULL;
-    }
-
-    // Read through the comment records
-    // Extract the constants and 
-    // also store body masses to be joined with the target data
-    struct mass_data masses = {
-        .names = NULL,
-        .values = NULL,
-        .count = 0
-    };
-    struct spk_constants spk_constants;
-    struct spk_global spk_global = {
-        .con = spk_constants,
-        .masses = masses
-    };
-
-    // Parse the constants and masses
-    parse_constants_and_masses(fd, record.file.fward, &spk_global);
-    
     // Seek until the first summary record using the file record's fward pointer.
     // Record numbers start from 1 not 0 so we subtract 1 to get to the correct record.
-    lseek(fd, (record.file.fward - 1) * RECORD_LENGTH, SEEK_SET);
-    read(fd, record.buf, RECORD_LENGTH);
+    lseek(fd, (record->file.fward - 1) * RECORD_LENGTH, SEEK_SET);
+    read(fd, record->buf, RECORD_LENGTH);
 
     // We are at the first summary block, validate
-    if ((int64_t)record.buf[8] != 0) {
+    if ((int64_t)record->buf[8] != 0) {
         fprintf(stderr, "Error parsing DAF/SPL file. Cannot find summary block.\n");
         close(fd);
         return NULL; 
@@ -309,11 +385,9 @@ struct spk_s * assist_spk_init(const char *path) {
 
     // okay, let's go
     struct spk_s* pl = calloc(1, sizeof(struct spk_s));
-    // pl->con = spk_constants;
-    // pl->masses = masses;
     while (1) { // Loop over records 
-        for (int b = 0; b < (int)record.summary.nsum; b++) { // Loop over summaries
-            struct sum_s* sum = &record.summary.s[b]; // get current summary
+        for (int b = 0; b < (int)record->summary.nsum; b++) { // Loop over summaries
+            struct sum_s* sum = &record->summary.s[b]; // get current summary
             
             // Index in our arrays for current target
             int m = pl->num - 1;
@@ -334,7 +408,6 @@ struct spk_s * assist_spk_init(const char *path) {
                 pl->targets[m].ind = 0;
                 // Set default of mass to 0
                 pl->targets[m].mass = 0;
-
                 pl->num++;
             }
 
@@ -346,14 +419,14 @@ struct spk_s * assist_spk_init(const char *path) {
         }
 
         // Location of next record
-        long n = (long)record.summary.next - 1;
+        long n = (long)record->summary.next - 1;
         if (n < 0) {
             // this is already the last record.
             break;
         } else {
             // Find and read next record
             lseek(fd, n * RECORD_LENGTH, SEEK_SET);
-            read(fd, record.buf, RECORD_LENGTH);
+            read(fd, record->buf, RECORD_LENGTH);
         }
     }
 
@@ -412,7 +485,7 @@ enum ASSIST_STATUS assist_spk_calc(struct spk_s *pl, double jde, double rel, int
 
 	// find location of 'directory' describing the data records
 	n = (int)((jde + rel - target->beg) / target->res);
-	val = (double *)pl->map + target->two[n] - 1;	
+	val = (double *)pl->map + target->two[n] - 1;
 
 	// record size and number of coefficients per coordinate
 	R = (int)val[-1];
@@ -463,18 +536,43 @@ enum ASSIST_STATUS assist_spk_calc(struct spk_s *pl, double jde, double rel, int
 }
 
 
+void printCustomFormat(double value) {
+    char buffer[100];
 
-enum ASSIST_STATUS assist_spk_calc_all(struct spk_s *pl, double jde, double rel, int m, double* GM, double* out_x, double* out_y, double* out_z, double* out_vx, double* out_vy, double* out_vz, double* out_ax, double* out_ay, double* out_az)
+    // Print the double value in scientific notation using %e
+    snprintf(buffer, sizeof(buffer), "%.16e", value);
+
+    // Find the position of 'e' and replace it with 'D'
+    char *e_position = strchr(buffer, 'e');
+    if (e_position != NULL) {
+        *e_position = 'D';
+    }
+
+    // Print the final formatted string
+    printf("%s\n", buffer);
+}
+
+
+// Calculate the position and velocity of planets from DE440 SPK file
+enum ASSIST_STATUS assist_spk_calc_planets(struct spk_s *pl, double jde, double rel, int code, double* GM, double* out_x, double* out_y, double* out_z, double* out_vx, double* out_vy, double* out_vz, double* out_ax, double* out_ay, double* out_az)
 {
     if(pl == NULL){
-        return(ASSIST_ERROR_AST_FILE);    
+        return(ASSIST_ERROR_EPHEM_FILE);    
     }
 
-    if(m < 0 || m > pl->num){
-        return(ASSIST_ERROR_NAST);
+
+    struct spk_target* target = NULL;
+    for (int i = 0; i < pl->num; i++) {
+        if (pl->targets[i].code == code) {
+            target = &(pl->targets[i]);
+            break;
+        }
     }
-    struct spk_target* target = &(pl->targets[m]);
-        
+
+    if (target == NULL) {
+        return(ASSIST_ERROR_NEPHEM);
+    }
+
     if (jde + rel < target->beg || jde + rel > target->end){
         return ASSIST_ERROR_COVERAGE;
     }
@@ -484,6 +582,7 @@ enum ASSIST_STATUS assist_spk_calc_all(struct spk_s *pl, double jde, double rel,
     int n, b, p, P, R;
     double T[32];
     double S[32];
+    double U[32];
     double *val, z;
     struct mpos_s pos = {0};
 
@@ -492,7 +591,7 @@ enum ASSIST_STATUS assist_spk_calc_all(struct spk_s *pl, double jde, double rel,
 
     // find location of 'directory' describing the data records
     n = (int)((jde + rel - target->beg) / target->res);
-    val = (double *)pl->map + target->two[n] - 1;    
+    val = (double *)pl->map + target->two[n] - 1;
 
     // record size and number of coefficients per coordinate
     R = (int)val[-1];
@@ -500,19 +599,25 @@ enum ASSIST_STATUS assist_spk_calc_all(struct spk_s *pl, double jde, double rel,
 
     // pick out the precise record
     b = (int)(((jde - _jul(val[-3])) + rel) / (val[-2] / 86400.0));
-    //+ sizeof(double) * b * R;
     val = (double *)pl->map + (target->one[n] - 1) + b * R;
 
     // scale to interpolation units
     z = ((jde - _jul(val[0])) + rel) / (val[1] / 86400.0);
 
+    // Calculate the scaling factor 'c'
+    double c = 1.0 / val[1];
+
     // set up Chebyshev polynomials
-    T[0] = 1.0; T[1] = z;   
-    S[1] = 1.0; S[0] = 0.0;
+    T[0] = 1.0; T[1] = z;
+    S[0] = 0.0; S[1] = 1.0;
+    U[0] = 0.0; U[1] = 0.0; U[2] = 4.0;
 
     for (p = 2; p < P; p++) {
-        T[p] = 2.0 * z * T[p-1] - T[p-2];
+		T[p] = 2.0 * z * T[p-1] - T[p-2];
         S[p] = 2.0 * z * S[p-1] + 2.0 * T[p-1] - S[p-2];
+	}
+    for (p = 3; p < P; p++) {
+        U[p] = 2.0 * z * U[p-1] + 4.0 * S[p-1] - U[p-2];
     }
 
     for (n = 0; n < 3; n++) {
@@ -520,17 +625,18 @@ enum ASSIST_STATUS assist_spk_calc_all(struct spk_s *pl, double jde, double rel,
 
         // sum interpolation stuff
         for (p = 0; p < P; p++) {
-            pos.u[n] += val[b + p] * T[p];
-            pos.v[n] += val[b + p] * S[p];
-            pos.w[n] += val[b + p] * (p + 1) * T[p];
-
+            double truncated_val = trunc(val[b + p] * 1e12) / 1e12;
+            pos.u[n] += truncated_val * T[p];
+            pos.v[n] += truncated_val * S[p] * c;
+            pos.w[n] += truncated_val * U[p] * c * c;
         }
 
         // restore units to [AU] and [AU/day]
         pos.u[n] /= 149597870.7;
         pos.v[n] /= 149597870.7 / 86400.0;  
-        pos.w[n] /= 149597870.7 / 86400.0 / 86400.0;
+        pos.w[n] /= 149597870.7 / (86400.0 * 86400.0);
     }
+    
     
     *out_x = pos.u[0];
     *out_y = pos.u[1];
@@ -541,7 +647,7 @@ enum ASSIST_STATUS assist_spk_calc_all(struct spk_s *pl, double jde, double rel,
     *out_ax = pos.w[0];
     *out_ay = pos.w[1];
     *out_az = pos.w[2];
-
+    
 
     return ASSIST_SUCCESS;
 }

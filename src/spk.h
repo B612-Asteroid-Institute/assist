@@ -100,14 +100,21 @@ union record_t {
         int bward;      // The record number of the final summary record in the file.
         int free;        // Next available free record
     } file;             // File record
-} record;
+};
+
+
+
 
 
 int assist_spk_free(struct spk_s *pl);
+int assist_free_spk_constants(struct spk_global *sg);
 struct spk_s * assist_spk_init(const char *path);
-enum ASSIST_STATUS assist_spk_calc(struct spk_s *pl, double jde, double rel, int m, double* GM, double* x, double* y, double* z);
-enum ASSIST_STATUS assist_spk_calc_all(struct spk_s *pl, double jde, double rel, int m, double* GM, double* x, double* y, double* z, double* vx, double* vy, double* vz, double* ax, double* ay, double* az);
+union record_t * assist_load_spk_file_record(int fd);
+struct spk_global * assist_load_spk_constants(const char *path);
 void parse_comments(int fd, int first_summary_record, char **comments);
-void parse_constants_and_masses(int fd, int first_summary_record, struct spk_global *sg);
+void assist_spk_join_masses(struct spk_s *sp, struct spk_global *sg);
+enum ASSIST_STATUS assist_spk_calc(struct spk_s *pl, double jde, double rel, int m, double* GM, double* x, double* y, double* z);
+enum ASSIST_STATUS assist_spk_calc_planets(struct spk_s *pl, double jde, double rel, int m, double* GM, double* x, double* y, double* z, double* vx, double* vy, double* vz, double* ax, double* ay, double* az);
+
 #endif // _SPK_H
 

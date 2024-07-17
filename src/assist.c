@@ -114,12 +114,13 @@ int assist_ephem_init(struct assist_ephem* ephem, char *user_planets_path, char 
         strncpy(planets_path, user_planets_path, FNAMESIZE-1);	
     }
 
-    // Initialize either the JPL linux binary or
+    // Initialize either the linux binary or
     // the spice kernel file for the planets.
     // Use the extension to detect which
     if (strstr(planets_path, ".bsp")){
         ephem->spk_planets = assist_spk_init(planets_path);
-        
+        ephem->spk_global = assist_load_spk_constants(planets_path);
+        assist_spk_join_masses(ephem->spk_planets, ephem->spk_global);
     }else{
         ephem->jpl_planets = assist_jpl_init(planets_path);
     }
@@ -147,53 +148,50 @@ int assist_ephem_init(struct assist_ephem* ephem, char *user_planets_path, char 
         }
     }
 
+    // Join the mass data from whichever planets file we are using.
     if (asteroids_path_not_found != 1){
 
-        // Use lookup table for new KBO objects in DE440/441
-        // Source: https://ssd.jpl.nasa.gov/ftp/eph/planets/bsp/README.txt
-        int massmap[] = {
-            // ID, SPK_ID
-            8001,  2136199,
-            8002,  2136108,
-            8003,  2090377,
-            8004,  2136472,
-            8005,  2050000,
-            8006,  2084522,
-            8007,  2090482,
-            8008,  2020000,
-            8009,  2055637,
-            8010,  2028978,
-            8011,  2307261,
-            8012,  2174567,
-            8013,  3361580,
-            8014,  3308265,
-            8015,  2055565,
-            8016,  2145452,
-            8017,  2090568,
-            8018,  2208996,
-            8019,  2225088,
-            8020,  2019521,
-            8021,  2120347,
-            8022,  2278361,
-            8023,  3525142,
-            8024,  2230965,
-            8025,  2042301,
-            8026,  2455502,
-            8027,  3545742,
-            8028,  2523639,
-            8029,  2528381,
-            8030,  3515022,
-        };
+        if (ephem->jpl_planets) {
+            // Use lookup table for new KBO objects in DE440/441
+            // Source: https://ssd.jpl.nasa.gov/ftp/eph/planets/bsp/README.txt
+            int massmap[] = {
+                // ID, SPK_ID
+                8001,  2136199,
+                8002,  2136108,
+                8003,  2090377,
+                8004,  2136472,
+                8005,  2050000,
+                8006,  2084522,
+                8007,  2090482,
+                8008,  2020000,
+                8009,  2055637,
+                8010,  2028978,
+                8011,  2307261,
+                8012,  2174567,
+                8013,  3361580,
+                8014,  3308265,
+                8015,  2055565,
+                8016,  2145452,
+                8017,  2090568,
+                8018,  2208996,
+                8019,  2225088,
+                8020,  2019521,
+                8021,  2120347,
+                8022,  2278361,
+                8023,  3525142,
+                8024,  2230965,
+                8025,  2042301,
+                8026,  2455502,
+                8027,  3545742,
+                8028,  2523639,
+                8029,  2528381,
+                8030,  3515022,
+            };
 
-
-
-        // Try to find masses of bodies in spk file in ephemeris constants
-        for(int n=0; n<ephem->spk_asteroids->num; n++){ // loop over all asteroids
-            int found = 0;
-            printf("Looking for mass of %d\n", ephem->spk_asteroids->targets[n].code);
-            
-            // If we're using linux binary
-            if (ephem->jpl_planets){
+            // Try to find masses of asteroid bodies in spk file in ephemeris constants
+            for(int n=0; n<ephem->spk_asteroids->num; n++){ // loop over all asteroids
+                int found = 0;
+                // If we're using linux binary
                 for(int c=0; c<ephem->jpl_planets->num; c++){ // loop over all constants
                     if (strncmp(ephem->jpl_planets->str[c], "MA", 2) == 0) {
                         int cid = atoi(ephem->jpl_planets->str[c]+2);
@@ -227,52 +225,18 @@ int assist_ephem_init(struct assist_ephem* ephem, char *user_planets_path, char 
                         }
                     }
                 }
-            } else if (ephem->spk_planets){
-                for(int c = 0; c < ephem->spk_planets->masses.count; c++){ // loop over all constants
-                    if (ephem->spk_planets->masses.names[c] != NULL){
-                        if (strncmp(ephem->spk_planets->masses.names[c], "MA", 2) == 0) {
-                            int cid = atoi(ephem->spk_planets->masses.names[c] + 2);
-                            int offset = 2000000;
-                            if (cid == ephem->spk_asteroids->targets[n].code-offset){
-                                ephem->spk_asteroids->targets[n].mass = ephem->spk_planets->masses.values[c];
-                                found = 1;
-                                break;
-                            }
-                        }
-                    }
-                }
 
                 if (found==0){
-                    int mapped = -1;
-                    for (int m=0; m<sizeof(massmap); m+=2){
-                        if (massmap[m+1]==ephem->spk_asteroids->targets[n].code){
-                            mapped = massmap[m];
-                            break;
-                        }
-                    }
-                    if (mapped != -1){
-                        for(int c = 0; c < ephem->spk_planets->masses.count; c++){ // loop over all constants
-                            if (ephem->spk_planets->masses.names[c] != NULL){
-                                if (ephem->spk_planets->masses.names[c][0] == 'M' && ephem->spk_planets->masses.names[c][1] == 'A'){
-                                    int cid = atoi(ephem->spk_planets->masses.names[c] + 2);
-                                    if (cid == mapped){
-                                        ephem->spk_asteroids->targets[n].mass = ephem->spk_planets->masses.values[c];
-                                        found = 1;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    fprintf(stderr,"WARNING: Cannot find mass for asteroid %d (NAIF ID Number %d).\n", n, ephem->spk_asteroids->targets[n].code );
                 }
+
             }
-
-
-            if (found==0){
-                fprintf(stderr,"WARNING: Cannot find mass for asteroid %d (NAIF ID Number %d).\n", n, ephem->spk_asteroids->targets[n].code );
-            }
-
+        
+        } else if (ephem->spk_global) {
+            assist_spk_join_masses(ephem->spk_asteroids, ephem->spk_global);
         }
+
+    
     }else{
         fprintf(stderr, "(ASSIST) %s\n", assist_error_messages[ASSIST_ERROR_AST_FILE]);
     }
