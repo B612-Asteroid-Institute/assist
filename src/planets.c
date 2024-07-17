@@ -24,7 +24,6 @@
  *
  */
 void assist_jpl_work(double *P, int ncm, int ncf, int niv, double t0, double t1, double *u, double *v, double *w)
-{       // next steps, hardcode P to values of val from spk function
         double T[24], S[24];
         double U[24];
         double t, c;

@@ -518,7 +518,6 @@ static void assist_additional_force_earth_J2J4(struct reb_simulation* sim, doubl
 
     double xr, yr, zr; //, vxr, vyr, vzr, axr, ayr, azr;
     xr = xe;  yr = ye;  zr = ze;
-    xr = xe;  yr = ye;  zr = ze;
 
     double J2e = assist_get_constant(assist, "J2E");
     double J3e = assist_get_constant(assist, "J3E");
@@ -554,37 +553,37 @@ static void assist_additional_force_earth_J2J4(struct reb_simulation* sim, doubl
 
         const double r2 = dx*dx + dy*dy + dz*dz;
         const double r = sqrt(r2);
-    
-    // Rotate to Earth equatorial frame
-    double dxp =  - dx*sina      + dy*cosa;
-    double dyp =  - dx*cosa*sind - dy*sina*sind + dz*cosd;
-    double dzp =    dx*cosa*cosd + dy*sina*cosd + dz*sind;
+        
+        // Rotate to Earth equatorial frame
+        double dxp =  - dx*sina      + dy*cosa;
+        double dyp =  - dx*cosa*sind - dy*sina*sind + dz*cosd;
+        double dzp =    dx*cosa*cosd + dy*sina*cosd + dz*sind;
 
-    dx =  dxp;
-    dy =  dyp;
-    dz =  dzp;
-    
-    // Calculate acceleration in
-    // Earth equatorial frame	
+        dx =  dxp;
+        dy =  dyp;
+        dz =  dzp;
+        
+        // Calculate acceleration in
+        // Earth equatorial frame	
 
-    // J2 terms
+        // J2 terms
         const double costheta2 = dz*dz/r2;
         const double J2e_prefac = 3.*J2e*Re_eq*Re_eq/r2/r2/r/2.;
         const double J2e_fac = 5.*costheta2-1.;
 
-    double resx = GMearth*J2e_prefac*J2e_fac*dx;
-    double resy = GMearth*J2e_prefac*J2e_fac*dy;
-    double resz = GMearth*J2e_prefac*(J2e_fac-2.)*dz;	
+        double resx = GMearth*J2e_prefac*J2e_fac*dx;
+        double resy = GMearth*J2e_prefac*J2e_fac*dy;
+        double resz = GMearth*J2e_prefac*(J2e_fac-2.)*dz;	
 
-    // J3 terms
+        // J3 terms
         const double J3e_prefac = 5.*J3e*Re_eq*Re_eq*Re_eq/r2/r2/r/2.;
         const double J3e_fac = 3.-7.*costheta2;
-    
-    resx += -GMearth*J3e_prefac*(1./r2)*J3e_fac*dx*dz;
+        
+        resx += -GMearth*J3e_prefac*(1./r2)*J3e_fac*dx*dz;
         resy += -GMearth*J3e_prefac*(1./r2)*J3e_fac*dy*dz;
-    resz += -GMearth*J3e_prefac*(6.*costheta2 - 7.*costheta2*costheta2-0.6);
-    
-    // J4 terms
+        resz += -GMearth*J3e_prefac*(6.*costheta2 - 7.*costheta2*costheta2-0.6);
+        
+        // J4 terms
         const double J4e_prefac = 5.*J4e*Re_eq*Re_eq*Re_eq*Re_eq/r2/r2/r2/r/8.;
         const double J4e_fac = 63.*costheta2*costheta2-42.*costheta2 + 3.;
 
@@ -592,105 +591,104 @@ static void assist_additional_force_earth_J2J4(struct reb_simulation* sim, doubl
         resy += GMearth*J4e_prefac*J4e_fac*dy;
         resz += GMearth*J4e_prefac*(J4e_fac+12.-28.*costheta2)*dz;
 
-    // Rotate back to original frame
-    double resxp = - resx*sina      - resy*cosa*sind + resz*cosa*cosd;
-    double resyp =   resx*cosa      - resy*sina*sind + resz*sina*cosd;
-    double reszp =                  + resy*cosd      + resz*sind;
+        // Rotate back to original frame
+        double resxp = - resx*sina      - resy*cosa*sind + resz*cosa*cosd;
+        double resyp =   resx*cosa      - resy*sina*sind + resz*sina*cosd;
+        double reszp =                  + resy*cosd      + resz*sind;
 
-    resx =  resxp;
-    resy =  resyp;
-    resz =  reszp;
+        resx =  resxp;
+        resy =  resyp;
+        resz =  reszp;
 
-    if(outfile){	
-        fprintf(outfile, "%3s %25.16le %25.16le %25.16le %25.16le\n", "J24", jd_ref+t, resx, resy, resz);
-        fflush(outfile);
-    }
-    
-    // Accumulate final acceleration terms
-      particles[j].ax += resx;
+        if(outfile){	
+            fprintf(outfile, "%3s %25.16le %25.16le %25.16le %25.16le\n", "J24", jd_ref+t, resx, resy, resz);
+            fflush(outfile);
+        }
+        
+        // Accumulate final acceleration terms
+        particles[j].ax += resx;
         particles[j].ay += resy; 
         particles[j].az += resz;
 
-    // Constants for variational equations
-    // J2 terms
+        // Constants for variational equations
+        // J2 terms
         const double J2e_fac2 = 7.*costheta2-1.;
         const double J2e_fac3 = 35.*costheta2*costheta2-30.*costheta2+3.;
 
-    const double dxdx = GMearth*J2e_prefac*(J2e_fac-5.*J2e_fac2*dx*dx/r2);
-    const double dydy = GMearth*J2e_prefac*(J2e_fac-5.*J2e_fac2*dy*dy/r2);
-    const double dzdz = GMearth*J2e_prefac*(-1.)*J2e_fac3;
-    const double dxdy = GMearth*J2e_prefac*(-5.)*J2e_fac2*dx*dy/r2;
-    const double dydz = GMearth*J2e_prefac*(-5.)*(J2e_fac2-2.)*dy*dz/r2;
-    const double dxdz = GMearth*J2e_prefac*(-5.)*(J2e_fac2-2.)*dx*dz/r2;
+        const double dxdx = GMearth*J2e_prefac*(J2e_fac-5.*J2e_fac2*dx*dx/r2);
+        const double dydy = GMearth*J2e_prefac*(J2e_fac-5.*J2e_fac2*dy*dy/r2);
+        const double dzdz = GMearth*J2e_prefac*(-1.)*J2e_fac3;
+        const double dxdy = GMearth*J2e_prefac*(-5.)*J2e_fac2*dx*dy/r2;
+        const double dydz = GMearth*J2e_prefac*(-5.)*(J2e_fac2-2.)*dy*dz/r2;
+        const double dxdz = GMearth*J2e_prefac*(-5.)*(J2e_fac2-2.)*dx*dz/r2;
 
-    // J3 terms
+        // J3 terms
         const double costheta = dz/r;
         const double J3e_fac2 = 21*(-3.*costheta2+1.)/r2;
         const double J3e_fac3 = 3*(-21.*costheta2*costheta2+14.*costheta2-1.)/r2;
         const double J3e_fac4 = (-63.*costheta2*costheta2+70.*costheta2-15.)*costheta/r;
 
-    const double dxdxJ3 = GMearth*J3e_prefac*costheta*(J3e_fac2*dx*dx-J3e_fac)/r;
-    const double dydyJ3 = GMearth*J3e_prefac*costheta*(J3e_fac2*dy*dy-J3e_fac)/r;
-    const double dzdzJ3 = GMearth*J3e_prefac*J3e_fac4;
-    const double dxdyJ3 = GMearth*J3e_prefac*J3e_fac2*costheta*dx*dy/r;
-    const double dydzJ3 = GMearth*J3e_prefac*J3e_fac3*dy;
-    const double dxdzJ3 = GMearth*J3e_prefac*J3e_fac3*dx;
+        const double dxdxJ3 = GMearth*J3e_prefac*costheta*(J3e_fac2*dx*dx-J3e_fac)/r;
+        const double dydyJ3 = GMearth*J3e_prefac*costheta*(J3e_fac2*dy*dy-J3e_fac)/r;
+        const double dzdzJ3 = GMearth*J3e_prefac*J3e_fac4;
+        const double dxdyJ3 = GMearth*J3e_prefac*J3e_fac2*costheta*dx*dy/r;
+        const double dydzJ3 = GMearth*J3e_prefac*J3e_fac3*dy;
+        const double dxdzJ3 = GMearth*J3e_prefac*J3e_fac3*dx;
 
-    // J4 terms
+        // J4 terms
         const double J4e_fac2= 33.*costheta2*costheta2-18.*costheta2 + 1.;
         const double J4e_fac3= 33.*costheta2*costheta2-30.*costheta2 + 5.;
         const double J4e_fac4= 231.*costheta2*costheta2*costheta2-315.*costheta2*costheta2+105.*costheta2 - 5.;
-    
-    const double dxdxJ4 = GMearth*J4e_prefac*(J4e_fac-21.*J4e_fac2*dx*dx/r2);
-    const double dydyJ4 = GMearth*J4e_prefac*(J4e_fac-21.*J4e_fac2*dy*dy/r2);
-    const double dzdzJ4 = GMearth*J4e_prefac*(-3.)*J4e_fac4;
-    const double dxdyJ4 = GMearth*J4e_prefac*(-21.)*J4e_fac2*dx*dy/r2;
-    const double dydzJ4 = GMearth*J4e_prefac*(-21.)*J4e_fac3*dy*dz/r2;
-    const double dxdzJ4 = GMearth*J4e_prefac*(-21.)*J4e_fac3*dx*dz/r2;
-
-    for (int v=0; v < sim->N_var_config; v++){
-        struct reb_variational_configuration const vc = sim->var_config[v];
-        int tp = vc.testparticle;
-        struct reb_particle* const particles_var1 = particles + vc.index;		
-        if(tp == j){
         
-        // Variational particle coords
-        const double ddx = particles_var1[0].x;
-        const double ddy = particles_var1[0].y;
-        const double ddz = particles_var1[0].z;
+        const double dxdxJ4 = GMearth*J4e_prefac*(J4e_fac-21.*J4e_fac2*dx*dx/r2);
+        const double dydyJ4 = GMearth*J4e_prefac*(J4e_fac-21.*J4e_fac2*dy*dy/r2);
+        const double dzdzJ4 = GMearth*J4e_prefac*(-3.)*J4e_fac4;
+        const double dxdyJ4 = GMearth*J4e_prefac*(-21.)*J4e_fac2*dx*dy/r2;
+        const double dydzJ4 = GMearth*J4e_prefac*(-21.)*J4e_fac3*dy*dz/r2;
+        const double dxdzJ4 = GMearth*J4e_prefac*(-21.)*J4e_fac3*dx*dz/r2;
 
-        // Rotate to Earth equatorial frame
-        double ddxp =  - ddx*sina      + ddy*cosa;
-        double ddyp =  - ddx*cosa*sind - ddy*sina*sind + ddz*cosd;
-        double ddzp =    ddx*cosa*cosd + ddy*sina*cosd + ddz*sind;
+        for (int v=0; v < sim->N_var_config; v++){
+            struct reb_variational_configuration const vc = sim->var_config[v];
+            int tp = vc.testparticle;
+            struct reb_particle* const particles_var1 = particles + vc.index;		
+            if(tp == j){
+                // Variational particle coords
+                const double ddx = particles_var1[0].x;
+                const double ddy = particles_var1[0].y;
+                const double ddz = particles_var1[0].z;
 
-        // Matrix multiplication
-        // J2 part
-        double dax =   ddxp * dxdx + ddyp * dxdy + ddzp * dxdz;
-        double day =   ddxp * dxdy + ddyp * dydy + ddzp * dydz;
-        double daz =   ddxp * dxdz + ddyp * dydz + ddzp * dzdz;
+                // Rotate to Earth equatorial frame
+                double ddxp =  - ddx*sina      + ddy*cosa;
+                double ddyp =  - ddx*cosa*sind - ddy*sina*sind + ddz*cosd;
+                double ddzp =    ddx*cosa*cosd + ddy*sina*cosd + ddz*sind;
 
-        // J3 part		
-        dax +=   ddxp * dxdxJ3 + ddyp * dxdyJ3 + ddzp * dxdzJ3;
-        day +=   ddxp * dxdyJ3 + ddyp * dydyJ3 + ddzp * dydzJ3;
-        daz +=   ddxp * dxdzJ3 + ddyp * dydzJ3 + ddzp * dzdzJ3;
+                // Matrix multiplication
+                // J2 part
+                double dax =   ddxp * dxdx + ddyp * dxdy + ddzp * dxdz;
+                double day =   ddxp * dxdy + ddyp * dydy + ddzp * dydz;
+                double daz =   ddxp * dxdz + ddyp * dydz + ddzp * dzdz;
 
-        // J4 part		
-        dax +=   ddxp * dxdxJ4 + ddyp * dxdyJ4 + ddzp * dxdzJ4;
-        day +=   ddxp * dxdyJ4 + ddyp * dydyJ4 + ddzp * dydzJ4;
-        daz +=   ddxp * dxdzJ4 + ddyp * dydzJ4 + ddzp * dzdzJ4;
+                // J3 part		
+                dax +=   ddxp * dxdxJ3 + ddyp * dxdyJ3 + ddzp * dxdzJ3;
+                day +=   ddxp * dxdyJ3 + ddyp * dydyJ3 + ddzp * dydzJ3;
+                daz +=   ddxp * dxdzJ3 + ddyp * dydzJ3 + ddzp * dzdzJ3;
 
-        // Rotate back to original frame
-        double daxp = - dax*sina      - day*cosa*sind + daz*cosa*cosd;
-        double dayp =   dax*cosa      - day*sina*sind + daz*sina*cosd;
-        double dazp =                  + day*cosd      + daz*sind;
+                // J4 part		
+                dax +=   ddxp * dxdxJ4 + ddyp * dxdyJ4 + ddzp * dxdzJ4;
+                day +=   ddxp * dxdyJ4 + ddyp * dydyJ4 + ddzp * dydzJ4;
+                daz +=   ddxp * dxdzJ4 + ddyp * dydzJ4 + ddzp * dzdzJ4;
 
-        // Accumulate acceleration terms
-        particles_var1[0].ax += daxp; 
-        particles_var1[0].ay += dayp; 
-        particles_var1[0].az += dazp;
-        
-        }
+                // Rotate back to original frame
+                double daxp = - dax*sina      - day*cosa*sind + daz*cosa*cosd;
+                double dayp =   dax*cosa      - day*sina*sind + daz*sina*cosd;
+                double dazp =                  + day*cosd      + daz*sind;
+
+                // Accumulate acceleration terms
+                particles_var1[0].ax += daxp; 
+                particles_var1[0].ay += dayp; 
+                particles_var1[0].az += dazp;
+                
+            }
         }
     }
 
@@ -731,7 +729,7 @@ static void assist_additional_force_solar_J2(struct reb_simulation* sim, double 
     double cosd = cos(Decs);
     double sind = sin(Decs);
 
-    //loop over test particles            
+    //loop over test particles
     for (int j=0; j<N_real; j++){
 
         const struct reb_particle p = particles[j];
@@ -742,98 +740,94 @@ static void assist_additional_force_solar_J2(struct reb_simulation* sim, double 
         const double r2 = dx*dx + dy*dy + dz*dz;
         const double r = sqrt(r2);
 
-    // Rotate to solar equatorial frame
-    double dxp =  - dx*sina      + dy*cosa;
-    double dyp =  - dx*cosa*sind - dy*sina*sind + dz*cosd;
-    double dzp =    dx*cosa*cosd + dy*sina*cosd + dz*sind;
+        // Rotate to solar equatorial frame
+        double dxp =  - dx*sina      + dy*cosa;
+        double dyp =  - dx*cosa*sind - dy*sina*sind + dz*cosd;
+        double dzp =    dx*cosa*cosd + dy*sina*cosd + dz*sind;
 
-    dx =  dxp;
-    dy =  dyp;
-    dz =  dzp;
+        dx =  dxp;
+        dy =  dyp;
+        dz =  dzp;
 
-    const double costheta2 = dz*dz/r2;
+        const double costheta2 = dz*dz/r2;
         const double J2s_prefac = 3.*J2s*Rs_eq*Rs_eq/r2/r2/r/2.;
         const double J2s_fac = 5.*costheta2-1.;
         const double J2s_fac2 = 7.*costheta2-1.;
         const double J2s_fac3 = 35.*costheta2*costheta2-30.*costheta2+3.;
 
-    // Calculate acceleration
-    double resx = GMsun*J2s_prefac*J2s_fac*dx;
-    double resy = GMsun*J2s_prefac*J2s_fac*dy;
-    double resz = GMsun*J2s_prefac*(J2s_fac-2.)*dz;
+        // Calculate acceleration
+        double resx = GMsun*J2s_prefac*J2s_fac*dx;
+        double resy = GMsun*J2s_prefac*J2s_fac*dy;
+        double resz = GMsun*J2s_prefac*(J2s_fac-2.)*dz;
 
-    // Rotate back to original frame
-    double resxp = - resx*sina      - resy*cosa*sind + resz*cosa*cosd;
-    double resyp =   resx*cosa      - resy*sina*sind + resz*sina*cosd;
-    double reszp =                  + resy*cosd      + resz*sind;
+        // Rotate back to original frame
+        double resxp = - resx*sina      - resy*cosa*sind + resz*cosa*cosd;
+        double resyp =   resx*cosa      - resy*sina*sind + resz*sina*cosd;
+        double reszp =                  + resy*cosd      + resz*sind;
 
-    resx =  resxp;
-    resy =  resyp;
-    resz =  reszp;
+        resx =  resxp;
+        resy =  resyp;
+        resz =  reszp;
 
-    if(outfile){
-        fprintf(outfile, "%3s %25.16le %25.16le %25.16le %25.16le\n", "J2", jd_ref+t, resx, resy, resz);
-        fflush(outfile);
-    }
+        if(outfile){
+            fprintf(outfile, "%3s %25.16le %25.16le %25.16le %25.16le\n", "J2", jd_ref+t, resx, resy, resz);
+            fflush(outfile);
+        }
 
         particles[j].ax += resx;
         particles[j].ay += resy;
         particles[j].az += resz;
 
-    // Constants for variational equations
-    // Only evaluate if there are variational particles
-    const double dxdx = GMsun*J2s_prefac*(J2s_fac-5.*J2s_fac2*dx*dx/r2);
-    const double dydy = GMsun*J2s_prefac*(J2s_fac-5.*J2s_fac2*dy*dy/r2);
-    const double dzdz = GMsun*J2s_prefac*(-1.)*J2s_fac3;
-    const double dxdy = GMsun*J2s_prefac*(-5.)*J2s_fac2*dx*dy/r2;
-    const double dydz = GMsun*J2s_prefac*(-5.)*(J2s_fac2-2.)*dy*dz/r2;
-    const double dxdz = GMsun*J2s_prefac*(-5.)*(J2s_fac2-2.)*dx*dz/r2;
+        // Constants for variational equations
+        // Only evaluate if there are variational particles
+        const double dxdx = GMsun*J2s_prefac*(J2s_fac-5.*J2s_fac2*dx*dx/r2);
+        const double dydy = GMsun*J2s_prefac*(J2s_fac-5.*J2s_fac2*dy*dy/r2);
+        const double dzdz = GMsun*J2s_prefac*(-1.)*J2s_fac3;
+        const double dxdy = GMsun*J2s_prefac*(-5.)*J2s_fac2*dx*dy/r2;
+        const double dydz = GMsun*J2s_prefac*(-5.)*(J2s_fac2-2.)*dy*dz/r2;
+        const double dxdz = GMsun*J2s_prefac*(-5.)*(J2s_fac2-2.)*dx*dz/r2;
 
-    for (int v=0; v < sim->N_var_config; v++){
-        struct reb_variational_configuration const vc = sim->var_config[v];
-        int tp = vc.testparticle;
-        struct reb_particle* const particles_var1 = particles + vc.index;		
-        if(tp == j){
-        
-        // Variational particle coords
-        double ddx = particles_var1[0].x;
-        double ddy = particles_var1[0].y;
-        double ddz = particles_var1[0].z;
-        
-        // Rotate to solar equatorial frame
-        double ddxp =  - ddx*sina      + ddy*cosa;
-        double ddyp =  - ddx*cosa*sind - ddy*sina*sind + ddz*cosd;
-        double ddzp =    ddx*cosa*cosd + ddy*sina*cosd + ddz*sind;
+        for (int v=0; v < sim->N_var_config; v++){
+            struct reb_variational_configuration const vc = sim->var_config[v];
+            int tp = vc.testparticle;
+            struct reb_particle* const particles_var1 = particles + vc.index;		
+            if(tp == j){
+                // Variational particle coords
+                double ddx = particles_var1[0].x;
+                double ddy = particles_var1[0].y;
+                double ddz = particles_var1[0].z;
+                
+                // Rotate to solar equatorial frame
+                double ddxp =  - ddx*sina      + ddy*cosa;
+                double ddyp =  - ddx*cosa*sind - ddy*sina*sind + ddz*cosd;
+                double ddzp =    ddx*cosa*cosd + ddy*sina*cosd + ddz*sind;
 
-        ddx =  ddxp;
-        ddy =  ddyp;
-        ddz =  ddzp;
-        
-        double daxp =   ddx * dxdx + ddy * dxdy + ddz * dxdz;
-        double dayp =   ddx * dxdy + ddy * dydy + ddz * dydz;
-        double dazp =   ddx * dxdz + ddy * dydz + ddz * dzdz;
+                ddx =  ddxp;
+                ddy =  ddyp;
+                ddz =  ddzp;
+                
+                double daxp =   ddx * dxdx + ddy * dxdy + ddz * dxdz;
+                double dayp =   ddx * dxdy + ddy * dydy + ddz * dydz;
+                double dazp =   ddx * dxdz + ddy * dydz + ddz * dzdz;
 
-        // Rotate back to original frame
-        double dax = - daxp*sina      - dayp*cosa*sind + dazp*cosa*cosd;
-        double day =   daxp*cosa      - dayp*sina*sind + dazp*sina*cosd;
-        double daz =                  + dayp*cosd      + dazp*sind;
+                // Rotate back to original frame
+                double dax = - daxp*sina      - dayp*cosa*sind + dazp*cosa*cosd;
+                double day =   daxp*cosa      - dayp*sina*sind + dazp*sina*cosd;
+                double daz =                  + dayp*cosd      + dazp*sind;
 
-        // Accumulate acceleration terms
-        particles_var1[0].ax += dax; 
-        particles_var1[0].ay += day; 
-        particles_var1[0].az += daz; 
+                // Accumulate acceleration terms
+                particles_var1[0].ax += dax; 
+                particles_var1[0].ay += day; 
+                particles_var1[0].az += daz; 
 
-        }
-
+            }
         } 
-       
     }
-
 }
 
 static void assist_additional_force_non_gravitational(struct reb_simulation* sim,
            double xo, double yo, double zo,
-           double vxo, double vyo, double vzo,	       
+           double vxo, double vyo, double vzo, 
            FILE *outfile){
 
     const unsigned int N = sim->N;  // N includes real+variational particles
@@ -965,8 +959,8 @@ static void assist_additional_force_non_gravitational(struct reb_simulation* sim
     }
 
     particles[j].ax += A1*g*dx/r + A2*g*tx/_t + A3*g*hx/h;
-        particles[j].ay += A1*g*dy/r + A2*g*ty/_t + A3*g*hy/h;
-        particles[j].az += A1*g*dz/r + A2*g*tz/_t + A3*g*hz/h;
+    particles[j].ay += A1*g*dy/r + A2*g*ty/_t + A3*g*hy/h;
+    particles[j].az += A1*g*dz/r + A2*g*tz/_t + A3*g*hz/h;
 
     // variational matrix elements
     // Only evaluate the constants if there are variational particles
