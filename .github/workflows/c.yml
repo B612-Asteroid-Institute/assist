@@ -97,3 +97,28 @@ jobs:
         run: |
           make
           LD_LIBRARY_PATH=../../../rebound/src/ ./rebound
+      - name: Test Loading Spice Kernels
+        working-directory: ./unit_tests/spk_init/
+        run: |
+          make
+          LD_LIBRARY_PATH=../../../rebound/src/ ./rebound
+      - name: Test Loading Constants from Planet SPK
+        working-directory: ./unit_tests/spk_load_constants/
+        run: |
+          make
+          LD_LIBRARY_PATH=../../../rebound/src/ ./rebound
+      - name: Test Joining Mass Data from SPK
+        working-directory: ./unit_tests/spk_join_masses/
+        run: |
+          make
+          LD_LIBRARY_PATH=../../../rebound/src/ ./rebound
+      - name: Reproduce Apophis Encounter with bsp 
+        working-directory: ./unit_tests/apophis_bsp/
+        run: |
+          make
+          LD_LIBRARY_PATH=../../../rebound/src/ ./rebound
+      - name: Reproduce Ceres-5303 encounter with bsp
+        working-directory: ./unit_tests/5303_Ceres_bsp/
+        run: |
+          make
+          LD_LIBRARY_PATH=../../../rebound/src/ ./rebound
