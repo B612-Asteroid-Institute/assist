@@ -41,6 +41,8 @@ double roundtrip(struct assist_ephem* ephem, double trange){
         reb_simulation_step(r);
     }
     
+    fprintf(stderr, "r->t %f\n",r->t);
+    fprintf(stderr, "t0 %f\n",t0);
     assert(r->t == t0);
 
     double dx = r->particles[0].x - x0;
@@ -57,7 +59,7 @@ double roundtrip(struct assist_ephem* ephem, double trange){
 int main(int argc, char* argv[]){
 
     struct assist_ephem* ephem = assist_ephem_create(
-            "../../data/linux_p1550p2650.440",
+            "../../data/de440.bsp",
             "../../data/sb441-n16.bsp");
     if (ephem == NULL){
         fprintf(stderr,"Error initializing assist_ephem.\n");

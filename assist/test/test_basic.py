@@ -1,7 +1,10 @@
-import rebound
-import assist
-import unittest
 import math
+import unittest
+
+import rebound
+
+import assist
+
 
 class TestAssist(unittest.TestCase):
     def test_rebound(self):
@@ -12,18 +15,18 @@ class TestAssist(unittest.TestCase):
         self.assertEqual(sim.t,1.0)
     
     def test_ephem(self):
-        ephem = assist.Ephem("data/linux_p1550p2650.440", "data/sb441-n16.bsp")
+        ephem = assist.Ephem("data/de440.bsp", "data/sb441-n16.bsp")
         self.assertEqual(ephem.jd_ref, 2451545.0)
         p = ephem.get_particle(0,0) # Sun
-        self.assertEqual(p.x, -0.007137179161607906)
+        self.assertEqual(p.x, -0.0071371791616045835)
         p = ephem.get_particle(1,100) # planet
-        self.assertEqual(p.x, 0.12906301685045435)
+        self.assertEqual(p.x, 0.12906301685043747)
         p = ephem.get_particle(20,200) #asteroid
-        self.assertEqual(p.x, -2.62956381075119)
+        self.assertEqual(p.x, -2.629563810751188)
         del ephem
     
     def test_ephem_names(self):
-        ephem = assist.Ephem("data/linux_p1550p2650.440", "data/sb441-n16.bsp")
+        ephem = assist.Ephem("data/de440.bsp", "data/sb441-n16.bsp")
         p1 = ephem.get_particle(0,0) # Sun
         p2 = ephem.get_particle("Sun",0) # Also Sun
         self.assertEqual(p1.x, p2.x)
@@ -32,7 +35,7 @@ class TestAssist(unittest.TestCase):
             ephem.get_particle("Planet 9",0) # Does not exist
 
     def test_holman(self):
-        ephem = assist.Ephem("data/linux_p1550p2650.440", "data/sb441-n16.bsp")
+        ephem = assist.Ephem("data/de440.bsp", "data/sb441-n16.bsp")
         
         sim = rebound.Simulation()
         extras = assist.Extras(sim, ephem)
