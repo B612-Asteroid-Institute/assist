@@ -1,12 +1,12 @@
-from codecs import open
-import os
 import inspect
-import sys 
+import os
+import sys
+from codecs import open
 from distutils import sysconfig
-from distutils.sysconfig import get_python_lib 
+from distutils.sysconfig import get_python_lib
 
 try:
-    from setuptools import setup, Extension
+    from setuptools import Extension, setup
     from setuptools.command.build_ext import build_ext as _build_ext
 except ImportError:
     print("Installing ASSIST requires setuptools.  Do 'pip install setuptools'.")
@@ -53,6 +53,13 @@ class build_ext(_build_ext):
                 ext.extra_link_args.append('-Wl,-rpath,'+rebdir+'/../')
                 ext.runtime_library_dirs.append(rebdirsp)
                 ext.extra_link_args.append('-Wl,-rpath,'+rebdirsp)
+                
+                # Add loader-relative paths for virtual environments where site-packages gets moved
+                if sys.platform == 'darwin':
+                    ext.extra_link_args.append('-Wl,-rpath,@loader_path')
+                elif sys.platform.startswith('linux'):
+                    ext.extra_link_args.append('-Wl,-rpath,$ORIGIN')
+                
                 print(extra_link_args)
             print(rebdir+'/../')
             print(rebdirsp)
@@ -72,6 +79,11 @@ if sys.platform == 'darwin':
     vars = sysconfig.get_config_vars()
     vars['LDSHARED'] = vars['LDSHARED'].replace('-bundle', '-shared')
     extra_link_args.append('-Wl,-install_name,@rpath/libassist'+suffix)
+    # Add additional linker flags for better compatibility with virtual environments
+    extra_link_args.append('-Wl,-rpath,@loader_path')
+elif sys.platform.startswith('linux'):
+    # Add Linux equivalent for virtual environment compatibility
+    extra_link_args.append('-Wl,-rpath,$ORIGIN')
 
 libassistmodule = Extension('libassist',
                   sources = [ 'src/assist.c','src/spk.c', 'src/planets.c', 'src/forces.c', 'src/tools.c'],
